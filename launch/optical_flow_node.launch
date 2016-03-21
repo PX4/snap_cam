@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <node pkg="snap_cam" type="optical_flow_node" name="optical_flow" output="screen">
+    <param name="calibration_path" value="$(find snap_cam)/calib/cameraParameters.yaml"/>
+    <param name="topic_name" value="snap_cam/optical_flow/image"/>
+  </node>
+</launch>

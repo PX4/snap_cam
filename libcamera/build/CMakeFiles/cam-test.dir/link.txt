@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/cam-test.dir/test/camera_test.cpp.o  -o cam-test -rdynamic -lcamera -lturbojpeg 
