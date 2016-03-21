@@ -4,16 +4,15 @@
 #include <yaml-cpp/yaml.h>
 #include <string>
 #include <ros/console.h>
-#include "Precision.h"
 
 // cameraParameters
 // =========================================================
 struct CameraParameters // parameters of one camera
 {
-	FloatType CameraMatrix[3][3];
-	FloatType FocalLength[2];
-	FloatType PrincipalPoint[2];
-	FloatType RadialDistortion[3];
+	double CameraMatrix[3][3];
+	double FocalLength[2];
+	double PrincipalPoint[2];
+	double RadialDistortion[3];
 	enum {PLUMB_BOB = 0, ATAN = 1};
 	int DistortionModel;
 };
