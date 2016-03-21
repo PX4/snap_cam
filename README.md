@@ -50,8 +50,8 @@ Then clone the following four catkin packages and build again
 cd src
 git clone https://github.com/ros-perception/vision_opencv
 git clone https://github.com/ros-perception/image_common
-git clone https://github.com/ethz-ait/duo_vio.git
-git clone todo: snap_cam repo
+git clone https://github.com/ethz-ait/klt_feature_tracker.git
+git clone https://github.com/ChristophTobler/snap_cam.git
 ```
 
 
