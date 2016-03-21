@@ -7,7 +7,7 @@ project(snap_cam)
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
-  duo_vio
+  klt_feature_tracker
   sensor_msgs
   roscpp
   rospy
