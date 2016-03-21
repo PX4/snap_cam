@@ -41,7 +41,7 @@ static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
 
 //decalare variables
-std::vector<FloatType> features_current;
+std::vector<cv::Point2f> features_current;
 std::vector<int> updateVector;
 cv::Mat_<cv::Point2f> out_features_previous;
 
@@ -128,7 +128,7 @@ void sendOptFlowMessage (double timestamp, double dt, double flow_x, double flow
 
 void calcOptFlow(cv::Mat Image, double img_timestamp)
 {
-  std::vector<FloatType> useless;
+  std::vector<cv::Point2f> useless;
   int meancount = 0;
 
   double pixel_flow_x_integral = 0.0;
@@ -144,14 +144,9 @@ void calcOptFlow(cv::Mat Image, double img_timestamp)
   distortion <<   cameraParams.RadialDistortion[0], cameraParams.RadialDistortion[1], 0, 0, cameraParams.RadialDistortion[2];
 
   int npoints = updateVector.size();
-  cv::Mat_<cv::Point2f> in_features_current(1,npoints);
   cv::Mat_<cv::Point2f> out_features_current(1,npoints);
 
-  for (int i = 0; i < npoints; i++) {
-    in_features_current(i) = cv::Point2f(features_current[2*i], features_current[2*i + 1]);
-  }
-
-  cv::undistortPoints(in_features_current, out_features_current, cam_matrix, distortion);
+  cv::undistortPoints(features_current, out_features_current, cam_matrix, distortion);
 
   //cv::undistortPoints returns normalized coordinates... -> convert
   for (int i = 0; i < npoints; i++) {
