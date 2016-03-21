@@ -114,8 +114,8 @@ void sendOptFlowMessage (double timestamp, double dt, double flow_x, double flow
   sensor_msg.time_usec = timestamp * 1000000.0;
   sensor_msg.sensor_id = 0;//?
   sensor_msg.integration_time_us = dt;
-  sensor_msg.integrated_x = flow_x;
-  sensor_msg.integrated_y = flow_y;
+  sensor_msg.integrated_x = flow_y;
+  sensor_msg.integrated_y = - flow_x;
   sensor_msg.integrated_xgyro = 0.0;
   sensor_msg.integrated_ygyro = 0.0;
   sensor_msg.integrated_zgyro = 0.0;
@@ -215,9 +215,6 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     ROS_ERROR("Could not convert from '%s' to 'mono8'.", msg->encoding.c_str());
   }
 
-  /*cv::namedWindow( "Display window", CV_WINDOW_AUTOSIZE );// Create a window for display.
-  cv::imshow( "Display window", matFrame );
-  cv::waitKey(30);*/
   calcOptFlow(matFrame, timestamp);
 }
 
@@ -238,9 +235,12 @@ int main(int argc, char **argv)
     ROS_INFO("Failed to get custom camera calibration path");
   }
 
-  if (!_nh.getParam("topic_name", topic_name)) {
-    ROS_INFO("Got custom camera calibration path %s", calibration_path.c_str());
-    loadCustomCameraCalibration(calibration_path);
+  if (_nh.getParam("topic_name", topic_name)) {
+    ROS_INFO("Got topic name: %s", topic_name.c_str());
+  } else {
+    std::string default_topicName = "snap_cam/image";
+    ROS_INFO("Could not get topic_name: default topic name: %s", default_topicName.c_str());
+    topic_name = default_topicName;
   }
 
   // try to setup udp socket for communcation
