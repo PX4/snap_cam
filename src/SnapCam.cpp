@@ -43,15 +43,6 @@ using namespace camera;
 
 static CamConfig parseCommandline(int argc, char* argv[]);
 
-ImageSize FourKSize(4096,2160);
-ImageSize UHDSize(3840,2160);
-ImageSize FHDSize(1920,1080);
-ImageSize HDSize(1280,720);
-ImageSize VGASize(640,480);
-ImageSize stereoVGASize(1280, 480);
-ImageSize QVGASize(320,240);
-ImageSize stereoQVGASize(640,240);
-
 SnapCam::SnapCam(CamConfig cfg)
 : cb_(nullptr)
 {
@@ -470,25 +461,25 @@ static int setDefaultConfig(CamConfig &cfg) {
 
     switch (cfg.func) {
     case CAM_FUNC_OPTIC_FLOW:
-        cfg.pSize   = VGASize;
-        cfg.vSize   = VGASize;
-        cfg.picSize   = VGASize;
+        cfg.pSize   = CameraSizes::VGASize();
+        cfg.vSize   = CameraSizes::VGASize();
+        cfg.picSize   = CameraSizes::VGASize();
         cfg.outputFormat = RAW_FORMAT;
         break;
     case CAM_FUNC_RIGHT_SENSOR:
-        cfg.pSize   = VGASize;
-        cfg.vSize   = VGASize;
-        cfg.picSize   = VGASize;
+        cfg.pSize   = CameraSizes::VGASize();
+        cfg.vSize   = CameraSizes::VGASize();
+        cfg.picSize   = CameraSizes::VGASize();
         break;
     case CAM_FUNC_STEREO:
-        cfg.pSize = stereoVGASize;
-        cfg.vSize  = stereoVGASize;
-        cfg.picSize  = stereoVGASize;
+        cfg.pSize = CameraSizes::stereoVGASize();
+        cfg.vSize  = CameraSizes::stereoVGASize();
+        cfg.picSize  = CameraSizes::stereoVGASize();
         break;
     case CAM_FUNC_HIRES:
-        cfg.pSize = FHDSize;
-        cfg.vSize = HDSize;
-        cfg.picSize = FHDSize;
+        cfg.pSize = CameraSizes::FHDSize();
+        cfg.vSize = CameraSizes::HDSize();
+        cfg.picSize = CameraSizes::FHDSize();
         break;
     default:
         printf("invalid sensor function \n");
@@ -548,19 +539,19 @@ static CamConfig parseCommandline(int argc, char* argv[])
             {
                 string str(optarg);
                 if (str == "4k") {
-                    cfg.pSize = UHDSize;
+                    cfg.pSize = CameraSizes::UHDSize();
                 } else if (str == "1080p") {
-                    cfg.pSize = FHDSize;
+                    cfg.pSize = CameraSizes::FHDSize();
                 } else if (str == "720p") {
-                    cfg.pSize = HDSize;
+                    cfg.pSize = CameraSizes::HDSize();
                 } else if (str == "VGA") {
-                    cfg.pSize = VGASize;
+                    cfg.pSize = CameraSizes::VGASize();
                 } else if (str == "QVGA") {
-                    cfg.pSize = QVGASize;
+                    cfg.pSize = CameraSizes::QVGASize();
                 } else if (str == "stereoVGA") {
-                    cfg.pSize = stereoVGASize;
+                    cfg.pSize = CameraSizes::stereoVGASize();
                 } else if (str == "stereoQVGA") {
-                    cfg.pSize = stereoQVGASize;
+                    cfg.pSize = CameraSizes::stereoQVGASize();
                 }
                 break;
             }
@@ -568,25 +559,25 @@ static CamConfig parseCommandline(int argc, char* argv[])
             {
                 string str(optarg);
                 if (str == "4k") {
-                    cfg.vSize = UHDSize;
+                    cfg.vSize = CameraSizes::UHDSize();
                     cfg.testVideo = true;
                 } else if (str == "1080p") {
-                    cfg.vSize = FHDSize;
+                    cfg.vSize = CameraSizes::FHDSize();
                     cfg.testVideo = true;
                 } else if (str == "720p") {
-                    cfg.vSize = HDSize;
+                    cfg.vSize = CameraSizes::HDSize();
                     cfg.testVideo = true;
                 } else if (str == "VGA") {
-                    cfg.vSize = VGASize;
+                    cfg.vSize = CameraSizes::VGASize();
                     cfg.testVideo = true;
                 } else if (str == "QVGA") {
-                    cfg.vSize = QVGASize;
+                    cfg.vSize = CameraSizes::QVGASize();
                     cfg.testVideo = true;
                 } else if (str == "stereoVGA") {
-                    cfg.vSize = stereoVGASize;
+                    cfg.vSize = CameraSizes::stereoVGASize();
                     cfg.testVideo = true;
                 } else if (str == "stereoQVGA"){
-                    cfg.vSize = stereoQVGASize;
+                    cfg.vSize = CameraSizes::stereoQVGASize();
                     cfg.testVideo = true;
                 } else if (str == "disable"){
                     cfg.testVideo = false;
@@ -601,19 +592,19 @@ static CamConfig parseCommandline(int argc, char* argv[])
             {
                 string str(optarg);
                 if (str == "4k") {
-                    cfg.picSize = UHDSize;
+                    cfg.picSize = CameraSizes::UHDSize();
                 } else if (str == "1080p") {
-                    cfg.picSize = FHDSize;
+                    cfg.picSize = CameraSizes::FHDSize();
                 } else if (str == "720p") {
-                    cfg.picSize = HDSize;
+                    cfg.picSize = CameraSizes::HDSize();
                 } else if (str == "VGA") {
-                    cfg.picSize = VGASize;
+                    cfg.picSize = CameraSizes::VGASize();
                 } else if (str == "QVGA") {
-                    cfg.picSize = QVGASize;
+                    cfg.picSize = CameraSizes::QVGASize();
                 } else if (str == "stereoVGA") {
-                    cfg.picSize = stereoVGASize;
+                    cfg.picSize = CameraSizes::stereoVGASize();
                 } else if (str == "stereoQVGA") {
-                    cfg.picSize = stereoQVGASize;
+                    cfg.picSize = CameraSizes::stereoQVGASize();
                 }
                 cfg.testSnapshot = true;
                 cfg.picSizeIdx = -1;

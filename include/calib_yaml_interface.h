@@ -3,7 +3,7 @@
 
 #include <yaml-cpp/yaml.h>
 #include <string>
-#include <ros/console.h>
+#include "logging.h"
 
 // cameraParameters
 // =========================================================

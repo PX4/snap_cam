@@ -3,18 +3,19 @@ project(snap_cam)
 
 # check if this is being built as a ROS package
 if (CATKIN_DEVEL_PREFIX)
-    set(IS_CATKIN 1)
-    message(STATUS "Building this package with catkin")
+    set(CATKIN_BUILD 1)
+    message(STATUS "Building ${PROJECT_NAME} with catkin")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DCATKIN_BUILD")
 else()
-    set(IS_CATKIN 0)
-    message(STATUS "Building this package without catkin")
+    set(CATKIN_BUILD 0)
+    message(STATUS "Building ${PROJECT_NAME} without catkin")
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -Wno-format-security")
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -Wno-format-security -Wno-literal-suffix")
 
 find_package(OpenCV REQUIRED)
 
-if(IS_CATKIN)
+if(CATKIN_BUILD)
     ## Find catkin macros and libraries
     ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
     ## is used, also find other catkin packages
@@ -36,6 +37,12 @@ if(IS_CATKIN)
     #  CATKIN_DEPENDS catkin_lib
       DEPENDS yaml-cpp
     )
+else()
+    # if not building with catkin, we have to find klt_feature_tracker ourselves
+    # assume that it is in the same directory as this package
+    add_subdirectory( ../klt_feature_tracker build)
+    include_directories( ../klt_feature_tracker/include)
+    include_directories(src) # for mavlink
 endif()
 
 include_directories(
@@ -62,10 +69,15 @@ target_link_libraries(snap_cam
 )
 
 add_executable(optical_flow src/optical_flow.cpp)
-target_link_libraries(optical_flow yaml-cpp ${catkin_LIBRARIES} ${OpenCV_LIBS} snap_cam)
+target_link_libraries(optical_flow yaml-cpp
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBS}
+    snap_cam
+    klt_feature_tracker
+)
 
 # add the ROS executables
-if(IS_CATKIN)
+if(CATKIN_BUILD)
     add_executable(snap_cam_publisher src/nodes/snap_cam_publisher_node.cpp)
     target_link_libraries(snap_cam_publisher yaml-cpp ${catkin_LIBRARIES} ${OpenCV_LIBS} snap_cam)
 endif()

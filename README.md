@@ -1,15 +1,37 @@
-# Snapdragon: ROS camera driver
+# Snapdragon: Camera driver
 
-This page shows you how to set up your snapdragon flight to use the cameras and optical flow with ROS.
-<br />  There is a node for publishing the image (optical flow or highres) and another node to calculate the optical flow based on the published image.
+This page shows you how to set up your snapdragon flight to use the cameras and optical flow.
+The described package can be used with ROS by building with catkin or, alternatively, with pure cmake, where only the executables that do not depend on ROS will be built.
 
-## Prerequisites
-### ROS
-To run the nodes on the snapdragon flight ROS indigo has to be installed. Follow [this](http://wiki.ros.org/indigo/Installation/UbuntuARM) link to install it on your snapdragon flight. (preferably using the linaro user: $ su linaro)
+## Building with pure CMake
+For the pure CMake install variant, clone the required repositories in a directory, e.g. `~/src`:
+```sh
+cd ~/src
+git clone https://github.com/ethz-ait/klt_feature_tracker.git
+git clone https://github.com/ChristophTobler/snap_cam.git
+```
+
+Compile with:
+```sh
+cd snap_cam
+mkdir -p build
+cd build
+cmake ..
+make
+```
+
+Run the optical flow application with (note that you need to be root for this):
+```sh
+./optical_flow
+```
+
+## Building with ROS
+### Prerequisites
+To run the ROS nodes on the snapdragon flight, ROS indigo has to be installed. Follow [this](http://wiki.ros.org/indigo/Installation/UbuntuARM) link to install it on your snapdragon flight. (preferably using the linaro user: $ su linaro)
 
 If you're having permission issues while installing ros try
 ```sh
-sudo chown -R username:group directory -> sudo chown -R linaro:linaro /home/linaro
+sudo chown -R linaro:linaro /home/linaro
 ```
 
 #### Install the following packages:
@@ -54,7 +76,6 @@ git clone https://github.com/ethz-ait/klt_feature_tracker.git
 git clone https://github.com/ChristophTobler/snap_cam.git
 ```
 
-
 ### Others
 eigen3
 ```sh
@@ -88,8 +109,4 @@ roslaunch snap_cam snap_cam_node.launch
 ```
 You can set the parameters (camera, resolution and fps) in the launch file (/pathToYourCatkinWs/src/snap_cam/launch/optical_flow_node.launch)
 
-## Optical flow node
-The optical flow node subscribes to the published images (see above), calculates the optical flow and sends mavlink messages to the PX4 side.
-```sh
-roslaunch snap_cam optical_flow_node.launch
-```
+You can now subscribe to the images in your own ROS node.
