@@ -69,6 +69,19 @@ const int TAKEPICTURE_TIMEOUT_MS = 2000;
 using namespace std;
 using namespace camera;
 
+// workaround to only have to define these once
+struct CameraSizes
+{
+    static ImageSize FourKSize()        {static ImageSize is(4096,2160); return is;};
+    static ImageSize UHDSize()          {static ImageSize is(3840,2160); return is;};
+    static ImageSize FHDSize()          {static ImageSize is(1920,1080); return is;};
+    static ImageSize HDSize()           {static ImageSize is(1280, 720); return is;};
+    static ImageSize VGASize()          {static ImageSize is( 640, 480); return is;};
+    static ImageSize stereoVGASize()    {static ImageSize is(1280, 480); return is;};
+    static ImageSize QVGASize()         {static ImageSize is( 320, 240); return is;};
+    static ImageSize stereoQVGASize()   {static ImageSize is( 640, 240); return is;};
+};
+
 struct CameraCaps
 {
     vector<ImageSize> pSizes, vSizes, picSizes;

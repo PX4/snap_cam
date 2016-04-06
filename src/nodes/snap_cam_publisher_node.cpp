@@ -27,16 +27,6 @@
 
 ros::Publisher pub;
 
-// supported image sizes TODO its not ideal that these have to be redefined here (originally defined in SnapCam.cpp)
-ImageSize FourKSize(4096,2160);
-ImageSize UHDSize(3840,2160);
-ImageSize FHDSize(1920,1080);
-ImageSize HDSize(1280,720);
-ImageSize VGASize(640,480);
-ImageSize stereoVGASize(1280, 480);
-ImageSize QVGASize(320,240);
-ImageSize stereoQVGASize(640,240);
-
 void imageCallback(const cv::Mat& img)
 {
     // convert OpenCV image to ROS message
@@ -77,26 +67,28 @@ int main(int argc, char **argv)
     CamConfig cfg;
     cfg.func = CAM_FUNC_OPTIC_FLOW; // TODO get from ROS parameters
     if (res == "4k") {
-        cfg.pSize = UHDSize;
+        cfg.pSize = CameraSizes::UHDSize();
     } else if (res == "1080p") {
-        cfg.pSize = FHDSize;
+        cfg.pSize = CameraSizes::FHDSize();
     } else if (res == "720p") {
-        cfg.pSize = HDSize;
+        cfg.pSize = CameraSizes::HDSize();
     } else if (res == "VGA") {
-        cfg.pSize = VGASize;
+        cfg.pSize = CameraSizes::VGASize();
     } else if (res == "QVGA") {
-        cfg.pSize = QVGASize;
+        cfg.pSize = CameraSizes::QVGASize();
     } else if (res == "stereoVGA") {
-        cfg.pSize = stereoVGASize;
+        cfg.pSize = CameraSizes::stereoVGASize();
     } else if (res == "stereoQVGA") {
-        cfg.pSize = stereoQVGASize;
+        cfg.pSize = CameraSizes::stereoQVGASize();
     } else {
         printf("Invalid resolution specification %s. Defaulting to VGA\n", res.c_str());
-        cfg.pSize = stereoVGASize;
+        cfg.pSize = CameraSizes::stereoVGASize();
     }
 
     SnapCam cam(cfg);
     cam.setListener(imageCallback);
 
     ros::spin();
+
+    return 0;
 }

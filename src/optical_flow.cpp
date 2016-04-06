@@ -32,22 +32,13 @@
 #include <netinet/in.h>
 
 #include "SnapCam.h"
+#include "logging.h"
 
 #define UDP_PORT    14556
 #define MAVLINK_MSG_ID_OPTICAL_FLOW_RAD 106
 
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
-
-// supported image sizes TODO its not ideal that these have to be redefined here (originally defined in SnapCam.cpp)
-ImageSize FourKSize(4096,2160);
-ImageSize UHDSize(3840,2160);
-ImageSize FHDSize(1920,1080);
-ImageSize HDSize(1280,720);
-ImageSize VGASize(640,480);
-ImageSize stereoVGASize(1280, 480);
-ImageSize QVGASize(320,240);
-ImageSize stereoQVGASize(640,240);
 
 //decalare variables
 std::vector<cv::Point2f> features_current;
@@ -242,22 +233,22 @@ int main(int argc, char **argv)
     CamConfig cfg;
     cfg.func = CAM_FUNC_OPTIC_FLOW;
     if (res == "4k") {
-        cfg.pSize = UHDSize;
+        cfg.pSize = CameraSizes::UHDSize();
     } else if (res == "1080p") {
-        cfg.pSize = FHDSize;
+        cfg.pSize = CameraSizes::FHDSize();
     } else if (res == "720p") {
-        cfg.pSize = HDSize;
+        cfg.pSize = CameraSizes::HDSize();
     } else if (res == "VGA") {
-        cfg.pSize = VGASize;
+        cfg.pSize = CameraSizes::VGASize();
     } else if (res == "QVGA") {
-        cfg.pSize = QVGASize;
+        cfg.pSize = CameraSizes::QVGASize();
     } else if (res == "stereoVGA") {
-        cfg.pSize = stereoVGASize;
+        cfg.pSize = CameraSizes::stereoVGASize();
     } else if (res == "stereoQVGA") {
-        cfg.pSize = stereoQVGASize;
+        cfg.pSize = CameraSizes::stereoQVGASize();
     } else {
         printf("Invalid resolution specification %s. Defaulting to VGA\n", res.c_str());
-        cfg.pSize = stereoVGASize;
+        cfg.pSize = CameraSizes::stereoQVGASize();
     }
 
     // try to setup udp socket for communcation

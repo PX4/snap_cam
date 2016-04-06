@@ -1,4 +1,4 @@
-/* Copyright (c) 2016, PX4 Development Team. All rights reserved.
+/* Copyright (c) 2015, The Linux Foundataion. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -9,7 +9,7 @@
  *       copyright notice, this list of conditions and the following
  *       disclaimer in the documentation and/or other materials provided
  *       with the distribution.
- *     * Neither the name of PX4 nor the names of its
+ *     * Neither the name of The Linux Foundation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  *
@@ -24,97 +24,175 @@
  * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
  * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
+/*************************************************************************
+*
+*Application Notes:
+*
+*Camera selection:
+*  Each camera is given a unique function id in the sensor driver.
+*   HIRES = 0, OPTIC_FLOW = 1, LEFT SENSOR = 2, STEREO = 3
+*  getNumberOfCameras gives information on number of camera connected on target.
+*  getCameraInfo provides information on each camera loop.
+*  camid is obtained by looping through available cameras and matching info.func
+*  with the requested camera.
+*
+*Camera configuration:
+*
+* Optic flow:
+*   Do not set the following parameters :
+*    PictureSize
+*    focus mode
+*    white balance
+*    ISO
+*    preview format
+*
+*  The following parameters can be set only after starting preview :
+*    Manual exposure
+*    Manual gain
+*
+*  Notes:
+*    Snapshot is not supported for optic flow.
+*
+*  How to enable RAW mode for optic flow sensor ?
+*    RAW stream is only available for OV7251
+*    RAW stream currently returns images in the preview callback.
+*    When configuring RAW stream, video stream on the same sensor must not be enabled. Else you will not see preview callbacks.
+*    When configuration RAW, these parameters must be set  in addition to other parameters for optic flow
+*                params_.set("preview-format", "bayer-rggb");
+*                params_.set("picture-format", "bayer-mipi-10gbrg");
+*                params_.set("raw-size", "640x480");
+*
+*
+*  Stereo:
+*    Do not set the following parameters :
+*     PictureSize
+*     focus mode
+*     white balance
+*     ISO
+*     preview format
+*
+*   The following parameters can be set only after starting preview :
+*     Manual exposure
+*     Manual gain
+*     setVerticalFlip
+*     setHorizontalMirror
+*  left/right:
+*    code is written with reference to schematic but for end users the left and right sensor appears swapped.
+*    so for user experience in the current app left option is changed to right.
+*    right sensor with reference to schematic always goes in stereo mode, so no left option for end users.
+*
+* How to perform vertical flip and horizontal mirror on individual images in stereo ?
+*  In stereo since the image is merged,
+*  it makes it harder to perform these operation on individual images which may be required based on  senor  orientation on target.
+*  setVerticalFlip and setHorizontalMirror perform  perform these operation by changing the output configuration from the sensor.
+*
+*
+* How to set FPS
+*  Preview fps is set using the function : setPreviewFpsRange
+*  Video fps is set using the function : setVideoFPS
+*  setFPSindex scans through the supported fps values and returns index of requested fps in the array of supported fps.
+*
+* How to change the format to NV12
+*  To change the format to NV12 use the "preview-format" key.
+*  params.set(std::string("preview-format"), std::string("nv12"));
+*
+****************************************************************************/
 /*
- * SnapCam.cpp
+ * snap_cam_publisher.cpp
  *
  *  Created on: Mar 16, 2016
- *      Author: Christoph, Nicolas
+ *      Author: Christoph
  */
 
- #include "SnapCam.h"
-
- #include <sstream>
- #include <vector>
+#include "snap_cam_publisher.h"
 
 using namespace std;
 using namespace camera;
 
-static CamConfig parseCommandline(int argc, char* argv[]);
+ImageSize FourKSize(4096,2160);
+ImageSize UHDSize(3840,2160);
+ImageSize FHDSize(1920,1080);
+ImageSize HDSize(1280,720);
+ImageSize VGASize(640,480);
+ImageSize stereoVGASize(1280, 480);
+ImageSize QVGASize(320,240);
+ImageSize stereoQVGASize(640,240);
 
-SnapCam::SnapCam(CamConfig cfg)
-: cb_(nullptr)
+CameraTest::CameraTest()
 {
-    initialize(cfg);
-}
+    image_transport::ImageTransport it(nh);
+    ros::NodeHandle _nh("~");
 
-SnapCam::SnapCam(int argc, char* argv[])
-: cb_(nullptr)
-{
-    initialize(parseCommandline(argc, argv));
-}
-
-SnapCam::SnapCam(std::string config_str)
-: cb_(nullptr)
-{
-    std::vector<char *> args;
-    std::istringstream iss(config_str);
-
-    std::string token;
-    while(iss >> token) {
-      char *arg = new char[token.size() + 1];
-      copy(token.begin(), token.end(), arg);
-      arg[token.size()] = '\0';
-      args.push_back(arg);
+    //get parameters from launch file
+    if(!_nh.getParam("camera_type", camera_type)) {
+        ROS_INFO("Could not get camera type: default optical flow");
+        camera_type = 0;
     }
-    args.push_back(0);
-
-    initialize(parseCommandline(args.size(), &args[0]));
-}
-
-int SnapCam::initialize(CamConfig cfg)
-{
-    int rc;
-    rc = ICameraDevice::createInstance(cfg.func, &camera_);
-    if (rc != 0) {
-        printf("could not open camera %d\n", cfg.func);
-        return rc;
+    if(!_nh.getParam("camera_resolution", camera_resolution)) {
+        ROS_INFO("Could not get camera resolution: default QVGA");
+        camera_resolution = 0;
     }
-    camera_->addListener(this);
-
-    rc = params_.init(camera_);
-    if (rc != 0) {
-        printf("failed to init parameters\n");
-        ICameraDevice::deleteInstance(&camera_);
-        return rc;
+    if(!_nh.getParam("camera_fps", camera_fps)) {
+        ROS_INFO("Could not get camera fps: default 15");
+        camera_fps = 0;
+    }
+    if(!_nh.getParam("topic_name", topic_name)) {
+        std::string default_topicName = "snap_cam/image";
+        ROS_INFO("Could not get topic_name: default topic name: %s", default_topicName.c_str());
+        topic_name = default_topicName;
     }
 
-    /* query capabilities */
-    caps_.pSizes = params_.getSupportedPreviewSizes();
-    caps_.vSizes = params_.getSupportedVideoSizes();
-    caps_.picSizes = params_.getSupportedPictureSizes();
-    caps_.focusModes = params_.getSupportedFocusModes();
-    caps_.wbModes = params_.getSupportedWhiteBalance();
-    caps_.isoModes = params_.getSupportedISO();
-    caps_.brightness = params_.getSupportedBrightness();
-    caps_.sharpness = params_.getSupportedSharpness();
-    caps_.contrast = params_.getSupportedContrast();
-    caps_.previewFpsRanges = params_.getSupportedPreviewFpsRanges();
-    caps_.videoFpsValues = params_.getSupportedVideoFps();
-    caps_.previewFormats = params_.getSupportedPreviewFormats();
-    caps_.rawSize = params_.get("raw-size");
+    if (camera_type == 0 || camera_type == 1){
+      initialize(camera_type);
+      camera_used = camera_type;
+    } else {
+      camera_used = 0;
+      initialize(0);
+    }
+    //printCapabilities();
 
     int pFpsIdx;
-    if (cfg.fps >= 0 && cfg.fps <= 6)
-      pFpsIdx = cfg.fps;
+    if (camera_fps >= 0 && camera_fps <= 6)
+      pFpsIdx = camera_fps;
     else
       pFpsIdx = 0;
 
-      pSize_ = cfg.pSize;
+    if (camera_type == 1) { //highres camera
+      switch(camera_resolution) {
+        case 1 :  { pSize_ = VGASize;
+                    break;
+                  }
+        case 2 :  { pSize_ = HDSize;
+                    break;
+                  }
+        case 3 :  { pSize_ = FHDSize;
+                    break;
+                  }
+        case 4 :  { pSize_ = FourKSize;
+                    break;
+                  }
+        default:  { pSize_ = QVGASize;
+                    break;
+                  }
+      }
+    } else {
+      switch(camera_resolution) {
+        case 1 :  { pSize_ = VGASize;
+                    break;
+                  }
+        default:  { pSize_ = QVGASize;
+                    break;
+                  }
+      }
+    }
 
 
     frameCounter = 0;
+    //duration
+    int sleeptime = 300; //seconds
 
     //set parameters
     int focusModeIdx = 0; //fixed
@@ -130,18 +208,53 @@ int SnapCam::initialize(CamConfig cfg)
     params_.setPreviewSize(pSize_);
     params_.setPreviewFpsRange(caps_.previewFpsRanges[pFpsIdx]);
 
-    rc = params_.commit();
+    int rc = params_.commit();
     if (rc) {
-        printf("Commit failed\n");
-        printCapabilities();
+        printf("commit failed\n");
+        //goto delete_camera;
     } else {
+        //printf("start recording\n");
+        //camera_->startRecording();
+        pub = it.advertise(topic_name, 1);
+        printf("start preview\n");
         camera_->startPreview();
     }
-
-    config_ = cfg;
 }
 
-SnapCam::~SnapCam()
+int CameraTest::initialize(int camId)
+{
+    int rc;
+    rc = ICameraDevice::createInstance(camId, &camera_);
+    if (rc != 0) {
+        printf("could not open camera %d\n", camId);
+        return rc;
+    }
+    camera_->addListener(this);
+
+    rc = params_.init(camera_);
+    if (rc != 0) {
+        printf("failed to init parameters\n");
+        ICameraDevice::deleteInstance(&camera_);
+        return rc;
+    }
+    //printf("params = %s\n", params_.toString().c_str());
+    /* query capabilities */
+    caps_.pSizes = params_.getSupportedPreviewSizes();
+    caps_.vSizes = params_.getSupportedVideoSizes();
+    caps_.picSizes = params_.getSupportedPictureSizes();
+    caps_.focusModes = params_.getSupportedFocusModes();
+    caps_.wbModes = params_.getSupportedWhiteBalance();
+    caps_.isoModes = params_.getSupportedISO();
+    caps_.brightness = params_.getSupportedBrightness();
+    caps_.sharpness = params_.getSupportedSharpness();
+    caps_.contrast = params_.getSupportedContrast();
+    caps_.previewFpsRanges = params_.getSupportedPreviewFpsRanges();
+    caps_.videoFpsValues = params_.getSupportedVideoFps();
+    caps_.previewFormats = params_.getSupportedPreviewFormats();
+    caps_.rawSize = params_.get("raw-size");
+}
+
+CameraTest::~CameraTest()
 {
   printf("stop preview. frame counter = %d\n", frameCounter);
   camera_->stopPreview();
@@ -150,12 +263,25 @@ SnapCam::~SnapCam()
   ICameraDevice::deleteInstance(&camera_);
 }
 
+static int dumpToFile(uint8_t* data, uint32_t size, char* name, uint64_t timestamp)
+{
+    FILE* fp;
+    fp = fopen(name, "wb");
+    if (!fp) {
+        printf("fopen failed for %s\n", name);
+        return -1;
+    }
+    fwrite(data, size, 1, fp);
+    printf("saved filename %s\n", name);
+    fclose(fp);
+}
+
 static inline uint32_t align_size(uint32_t size, uint32_t align)
 {
     return ((size + align - 1) & ~(align-1));
 }
 
-void SnapCam::onError()
+void CameraTest::onError()
 {
     printf("camera error!, aborting\n");
     exit(EXIT_FAILURE);
@@ -166,33 +292,75 @@ void SnapCam::onError()
  * FUNCTION: onPreviewFrame
  *
  *  - This is called every frame I
+ *  - In the test app, we save files only after every 30 frames
  *  - In parameter frame (ICameraFrame) also has the timestamps
  *    field which is public
  *
  * @param frame
  *
  */
-void SnapCam::onPreviewFrame(ICameraFrame* frame)
+void CameraTest::onPreviewFrame(ICameraFrame* frame)
 {
-    if (!cb_)
-        return; // as long as nobody is listening, we don't need to do anything
+    /*if (pFrameCount_ > 0 && pFrameCount_ % 30 == 0) {
+        char name[50];
 
-    int frame_height = pSize_.height;
-    int frame_width = pSize_.width;
+        if ( config_.outputFormat == RAW_FORMAT )
+        {
+            snprintf(name, 50, "P_%dx%d_%04d_%llu.raw",
+                 pSize_.width, pSize_.height, pFrameCount_,frame->timeStamp);
+        }else{
+             snprintf(name, 50, "P_%dx%d_%04d_%llu.yuv",
+                 pSize_.width, pSize_.height, pFrameCount_,frame->timeStamp);
+        }
 
-    cv::Mat matFrame;
-
-    if (config_.func) { //highres
-        cv::Mat mYUV = cv::Mat(1.5*frame_height, frame_width, CV_8UC1, frame->data);
-        cv::cvtColor( mYUV, matFrame, CV_YUV420sp2RGB );
-    } else { //optical flow
-        matFrame = cv::Mat(frame_height, frame_width, CV_8UC1, frame->data);
+        if (config_.dumpFrames == true) {
+            dumpToFile(frame->data, frame->size, name, frame->timeStamp);
+        }
+        //printf("Preview FPS = %.2f\n", pFpsAvg_);
     }
 
-    cb_(matFrame);
+    uint64_t diff = frame->timeStamp - pTimeStampPrev_;
+    pFpsAvg_ = ((pFpsAvg_ * pFrameCount_) + (1e9 / diff)) / (pFrameCount_ + 1);
+    pFrameCount_++;
+    pTimeStampPrev_  = frame->timeStamp;*/
+
+    //-----------------------------------------------
+    frameCounter++;
+    imagePublisher(frame);
 }
 
-int SnapCam::printCapabilities()
+/**
+ *
+ * FUNCTION: onVideoFrame
+ *
+ *  - This is called every frame I
+ *  - In the test app, we save files only after every 30 frames
+ *  - In parameter frame (ICameraFrame) also has the timestamps
+ *    field which is public
+ *
+ * @param frame
+ *
+ */
+void CameraTest::onVideoFrame(ICameraFrame* frame)
+{
+    /*if (vFrameCount_ > 0 && vFrameCount_ % 30 == 0) {
+        char name[50];
+        snprintf(name, 50, "V_%dx%d_%04d_%llu.yuv",
+                 vSize_.width, vSize_.height, vFrameCount_,frame->timeStamp);
+        if (config_.dumpFrames == true) {
+            dumpToFile(frame->data, frame->size, name, frame->timeStamp);
+        }
+        //printf("Video FPS = %.2f\n", vFpsAvg_);
+        //printf("test frame data: %d\n", (int)*frame->data);
+    }
+
+    uint64_t diff = frame->timeStamp - vTimeStampPrev_;
+    vFpsAvg_ = ((vFpsAvg_ * vFrameCount_) + (1e9 / diff)) / (vFrameCount_ + 1);
+    vFrameCount_++;
+    vTimeStampPrev_  = frame->timeStamp;*/
+}
+
+int CameraTest::printCapabilities()
 {
     printf("Camera capabilities\n");
 
@@ -246,6 +414,77 @@ int SnapCam::printCapabilities()
     return 0;
 }
 
+const char usageStr[] =
+    "Camera API test application \n"
+    "\n"
+    "usage: camera-test [options]\n"
+    "\n"
+    "  -t <duration>   capture duration in seconds [10]\n"
+    "  -d              dump frames\n"
+    "  -i              info mode\n"
+    "                    - print camera capabilities\n"
+    "                    - streaming will not be started\n"
+    "  -f <type>       camera type\n"
+    "                    - hires\n"
+    "                    - optic\n"
+    "                    - right \n"
+    "                    - stereo \n"
+    "  -p <size>       Set resolution for preview frame\n"
+    "                    - 4k             ( imx sensor only ) \n"
+    "                    - 1080p          ( imx sensor only ) \n"
+    "                    - 720p           ( imx sensor only ) \n"
+    "                    - VGA            ( Max resolution of optic flow and right sensor )\n"
+    "                    - QVGA           ( 320x240 ) \n"
+    "                    - stereoVGA      ( 1280x480 : Stereo only - Max resolution )\n"
+    "                    - stereoQVGA     ( 640x240  : Stereo only )\n"
+    "  -v <size>       Set resolution for video frame\n"
+    "                    - 4k             ( imx sensor only ) \n"
+    "                    - 1080p          ( imx sensor only ) \n"
+    "                    - 720p           ( imx sensor only ) \n"
+    "                    - VGA            ( Max resolution of optic flow and right sensor )\n"
+    "                    - QVGA           ( 320x240 ) \n"
+    "                    - stereoVGA      ( 1280x480 : Stereo only - Max resolution )\n"
+    "                    - stereoQVGA     ( 640x240  : Stereo only )\n"
+    "                    - disable        ( do not start video stream )\n"
+    "  -n              take a picture with  max resolution of camera ( disabled by default)\n"
+    "                  $camera-test -f <type> -i to find max picture size\n"
+    "  -s <size>       take pickture at set resolution ( disabled by default) \n"
+    "                    - 4k             ( imx sensor only ) \n"
+    "                    - 1080p          ( imx sensor only ) \n"
+    "                    - 720p           ( imx sensor only ) \n"
+    "                    - VGA            ( Max resolution of optic flow and right sensor )\n"
+    "                    - QVGA           ( 320x240 ) \n"
+    "                    - stereoVGA      ( 1280x480 : Stereo only - Max resolution )\n"
+    "                    - stereoQVGA     ( 640x240  : Stereo only )\n"
+    "  -e <value>      set exposure control (only for ov7251)\n"
+    "                     min - 0\n"
+    "                     max - 65535\n"
+    "  -g <value>      set gain value (only for ov7251)\n"
+    "                     min - 0\n"
+    "                     max - 255\n"
+    "  -r < value>     set fps value      (Enter supported fps for requested resolution) \n"
+    "                    -  30 (default)\n"
+    "                    -  60 \n"
+    "                    -  90 \n"
+    "  -o <value>      Output format\n"
+    "                     0 :YUV format (default)\n"
+    "                     1 : RAW format (default of optic)\n"
+    "  -j <value>      Snapshot Format\n"
+    "                     jpeg : JPEG format (default)\n"
+    "                     raw  : Full-size MIPI RAW format\n"
+    "  -V <level>      syslog level [0]\n"
+    "                    0: silent\n"
+    "                    1: error\n"
+    "                    2: info\n"
+    "                    3: debug\n"
+    "  -h              print this message\n"
+;
+
+static inline void printUsageExit(int code)
+{
+    printf("%s", usageStr);
+    exit(code);
+}
 /**
  * FUNCTION: setFPSindex
  *
@@ -257,7 +496,7 @@ int SnapCam::printCapabilities()
  * @param vFpsIdx  : video fps index   (output)
  *
  *  */
-int SnapCam::setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx)
+int CameraTest::setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx)
 {
     int defaultPrevFPSIndex = -1;
     int defaultVideoFPSIndex = -1;
@@ -327,7 +566,7 @@ int SnapCam::setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx)
  *    provided in this function.
  *
  *  */
-int SnapCam::setParameters()
+int CameraTest::setParameters()
 {
     int focusModeIdx = 0;
     int wbModeIdx = 2;
@@ -414,37 +653,12 @@ int SnapCam::setParameters()
 }
 
 /**
- *  FUNCTION: setListener
- *
- *  Set a listener for image callbacks
- *  The callback is provided with a cv::Mat image
- *
- * */
-void SnapCam::setListener(CallbackFunction fun)
-{
-    cb_ = fun;
-}
-
-/**
- *  FUNCTION: setListener
- *
- *  Set a class member listener for image callbacks
- *  The callback is provided with a cv::Mat image
- *
- * */
- template <class T>
-void SnapCam::setListener(CallbackFunction fun, T* obj)
-{
-    cb_ = std::bind( fun, obj );
-}
-
-/**
  *  FUNCTION: setDefaultConfig
  *
  *  set default config based on camera module
  *
  * */
-static int setDefaultConfig(CamConfig &cfg) {
+static int setDefaultConfig(TestConfig &cfg) {
 
     cfg.outputFormat = YUV_FORMAT;
     cfg.dumpFrames = false;
@@ -461,25 +675,25 @@ static int setDefaultConfig(CamConfig &cfg) {
 
     switch (cfg.func) {
     case CAM_FUNC_OPTIC_FLOW:
-        cfg.pSize   = CameraSizes::VGASize();
-        cfg.vSize   = CameraSizes::VGASize();
-        cfg.picSize   = CameraSizes::VGASize();
+        cfg.pSize   = VGASize;
+        cfg.vSize   = VGASize;
+        cfg.picSize   = VGASize;
         cfg.outputFormat = RAW_FORMAT;
         break;
     case CAM_FUNC_RIGHT_SENSOR:
-        cfg.pSize   = CameraSizes::VGASize();
-        cfg.vSize   = CameraSizes::VGASize();
-        cfg.picSize   = CameraSizes::VGASize();
+        cfg.pSize   = VGASize;
+        cfg.vSize   = VGASize;
+        cfg.picSize   = VGASize;
         break;
     case CAM_FUNC_STEREO:
-        cfg.pSize = CameraSizes::stereoVGASize();
-        cfg.vSize  = CameraSizes::stereoVGASize();
-        cfg.picSize  = CameraSizes::stereoVGASize();
+        cfg.pSize = stereoVGASize;
+        cfg.vSize  = stereoVGASize;
+        cfg.picSize  = stereoVGASize;
         break;
     case CAM_FUNC_HIRES:
-        cfg.pSize = CameraSizes::FHDSize();
-        cfg.vSize = CameraSizes::HDSize();
-        cfg.picSize = CameraSizes::FHDSize();
+        cfg.pSize = FHDSize;
+        cfg.vSize = HDSize;
+        cfg.picSize = FHDSize;
         break;
     default:
         printf("invalid sensor function \n");
@@ -495,9 +709,9 @@ static int setDefaultConfig(CamConfig &cfg) {
  *  data structure
  *
  *  */
-static CamConfig parseCommandline(int argc, char* argv[])
+static TestConfig parseCommandline(int argc, char* argv[])
 {
-    CamConfig cfg;
+    TestConfig cfg;
     cfg.func = CAM_FUNC_HIRES;
 
     int c;
@@ -539,19 +753,19 @@ static CamConfig parseCommandline(int argc, char* argv[])
             {
                 string str(optarg);
                 if (str == "4k") {
-                    cfg.pSize = CameraSizes::UHDSize();
+                    cfg.pSize = UHDSize;
                 } else if (str == "1080p") {
-                    cfg.pSize = CameraSizes::FHDSize();
+                    cfg.pSize = FHDSize;
                 } else if (str == "720p") {
-                    cfg.pSize = CameraSizes::HDSize();
+                    cfg.pSize = HDSize;
                 } else if (str == "VGA") {
-                    cfg.pSize = CameraSizes::VGASize();
+                    cfg.pSize = VGASize;
                 } else if (str == "QVGA") {
-                    cfg.pSize = CameraSizes::QVGASize();
+                    cfg.pSize = QVGASize;
                 } else if (str == "stereoVGA") {
-                    cfg.pSize = CameraSizes::stereoVGASize();
+                    cfg.pSize = stereoVGASize;
                 } else if (str == "stereoQVGA") {
-                    cfg.pSize = CameraSizes::stereoQVGASize();
+                    cfg.pSize = stereoQVGASize;
                 }
                 break;
             }
@@ -559,25 +773,25 @@ static CamConfig parseCommandline(int argc, char* argv[])
             {
                 string str(optarg);
                 if (str == "4k") {
-                    cfg.vSize = CameraSizes::UHDSize();
+                    cfg.vSize = UHDSize;
                     cfg.testVideo = true;
                 } else if (str == "1080p") {
-                    cfg.vSize = CameraSizes::FHDSize();
+                    cfg.vSize = FHDSize;
                     cfg.testVideo = true;
                 } else if (str == "720p") {
-                    cfg.vSize = CameraSizes::HDSize();
+                    cfg.vSize = HDSize;
                     cfg.testVideo = true;
                 } else if (str == "VGA") {
-                    cfg.vSize = CameraSizes::VGASize();
+                    cfg.vSize = VGASize;
                     cfg.testVideo = true;
                 } else if (str == "QVGA") {
-                    cfg.vSize = CameraSizes::QVGASize();
+                    cfg.vSize = QVGASize;
                     cfg.testVideo = true;
                 } else if (str == "stereoVGA") {
-                    cfg.vSize = CameraSizes::stereoVGASize();
+                    cfg.vSize = stereoVGASize;
                     cfg.testVideo = true;
                 } else if (str == "stereoQVGA"){
-                    cfg.vSize = CameraSizes::stereoQVGASize();
+                    cfg.vSize = stereoQVGASize;
                     cfg.testVideo = true;
                 } else if (str == "disable"){
                     cfg.testVideo = false;
@@ -592,19 +806,19 @@ static CamConfig parseCommandline(int argc, char* argv[])
             {
                 string str(optarg);
                 if (str == "4k") {
-                    cfg.picSize = CameraSizes::UHDSize();
+                    cfg.picSize = UHDSize;
                 } else if (str == "1080p") {
-                    cfg.picSize = CameraSizes::FHDSize();
+                    cfg.picSize = FHDSize;
                 } else if (str == "720p") {
-                    cfg.picSize = CameraSizes::HDSize();
+                    cfg.picSize = HDSize;
                 } else if (str == "VGA") {
-                    cfg.picSize = CameraSizes::VGASize();
+                    cfg.picSize = VGASize;
                 } else if (str == "QVGA") {
-                    cfg.picSize = CameraSizes::QVGASize();
+                    cfg.picSize = QVGASize;
                 } else if (str == "stereoVGA") {
-                    cfg.picSize = CameraSizes::stereoVGASize();
+                    cfg.picSize = stereoVGASize;
                 } else if (str == "stereoQVGA") {
-                    cfg.picSize = CameraSizes::stereoQVGASize();
+                    cfg.picSize = stereoQVGASize;
                 }
                 cfg.testSnapshot = true;
                 cfg.picSizeIdx = -1;
@@ -672,7 +886,7 @@ static CamConfig parseCommandline(int argc, char* argv[])
             break;
         case 'h':
         case '?':
-            printf("Invalid arguments\n");
+            printUsageExit(0);
         default:
             abort();
         }
@@ -683,4 +897,39 @@ static CamConfig parseCommandline(int argc, char* argv[])
     }
 
     return cfg;
+}
+
+int CameraTest::imagePublisher(ICameraFrame* frame)
+{
+    int frame_height = pSize_.height;
+    int frame_width = pSize_.width;
+
+    cv::Mat matFrame;
+    std::string image_encoding;
+
+    if (camera_used) { //highres
+        cv::Mat mYUV = cv::Mat(1.5*frame_height, frame_width, CV_8UC1, frame->data);
+        cv::cvtColor( mYUV, matFrame, CV_YUV420sp2RGB );
+        image_encoding = "rgb8";
+    } else { //optical flow
+        matFrame = cv::Mat(frame_height, frame_width, CV_8UC1, frame->data);
+        image_encoding = "mono8";
+    }
+
+    // convert OpenCV image to ROS message
+    //printf("time = %llu\n", frame->timeStamp);
+    cv_bridge::CvImage cvImage;
+    ros::Time image_timestamp(frame->timeStamp / 1000000000.0f); //from nano seconds to seconds
+    cvImage.header.stamp = image_timestamp; //needs to be ros:Time
+    cvImage.header.frame_id = "snap_cam_image";
+    cvImage.encoding = image_encoding;
+    cvImage.image = matFrame;
+
+    sensor_msgs::Image msg;
+    cvImage.toImageMsg(msg);
+
+    if (nh.ok()) {
+        pub.publish(msg);
+        return 1;
+    }
 }
