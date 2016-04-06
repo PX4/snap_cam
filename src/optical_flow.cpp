@@ -45,7 +45,7 @@ std::vector<cv::Point2f> features_current;
 std::vector<int> updateVector;
 cv::Mat_<cv::Point2f> out_features_previous;
 
-double img_timestamp_prev;
+uint64_t img_timestamp_prev = 0;
 
 CameraParameters cameraParams = {};
 
@@ -53,6 +53,17 @@ int _fd;
 struct sockaddr_in _srcaddr;
 socklen_t _addrlen;
 unsigned char _buf[65535];
+
+uint64_t microsSinceEpoch()
+{
+	struct timeval tv;
+	uint64_t micros = 0;
+
+	gettimeofday(&tv, NULL);
+	micros =  ((uint64_t)tv.tv_sec) * 1000000 + tv.tv_usec;
+
+	return micros;
+}
 
 void loadCustomCameraCalibration(const std::string calib_path) {
     // load a camera calibration defined in the launch script
@@ -105,11 +116,11 @@ void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t componen
     }
 }
 
-void sendOptFlowMessage (double timestamp, double dt, double flow_x, double flow_y, double quality) {
+void sendOptFlowMessage (uint64_t timestamp, uint32_t dt, double flow_x, double flow_y, double quality) {
     //create and send optical flow mavlink message to px4
     mavlink_optical_flow_rad_t sensor_msg;
 
-    sensor_msg.time_usec = timestamp * 1000000.0;
+    sensor_msg.time_usec = timestamp;
     sensor_msg.sensor_id = 0;//?
     sensor_msg.integration_time_us = dt;
     sensor_msg.integrated_x = flow_y;
@@ -124,8 +135,14 @@ void sendOptFlowMessage (double timestamp, double dt, double flow_x, double flow
     send_mavlink_message(MAVLINK_MSG_ID_OPTICAL_FLOW_RAD, &sensor_msg, 200);
 }
 
-void calcOptFlow(const cv::Mat& Image, double img_timestamp)
+void calcOptFlow(const cv::Mat& Image, uint64_t img_timestamp)
 {
+    if (!img_timestamp_prev)
+    {
+        img_timestamp_prev = img_timestamp;
+        return;
+    }
+
     std::vector<cv::Point2f> useless;
     int meancount = 0;
 
@@ -162,9 +179,9 @@ void calcOptFlow(const cv::Mat& Image, double img_timestamp)
                 meancount++;
             }
             if (updateVector[i] == 2)
-            updateVector[i] = 1;
+                updateVector[i] = 1;
             if (updateVector[i] == 0)
-            updateVector[i] = 2;
+                updateVector[i] = 2;
         }
     }
 
@@ -174,7 +191,7 @@ void calcOptFlow(const cv::Mat& Image, double img_timestamp)
     }
 
     double flow_quality = 255.0*meancount/updateVector.size();
-    double delta_time = img_timestamp - img_timestamp_prev;
+    uint32_t delta_time = img_timestamp - img_timestamp_prev;
 
     double flow_x_ang = atan2(pixel_flow_x_integral, cameraParams.FocalLength[0]);
     double flow_y_ang = atan2(pixel_flow_y_integral, cameraParams.FocalLength[1]);
@@ -187,15 +204,15 @@ void calcOptFlow(const cv::Mat& Image, double img_timestamp)
 
 void imageCallback(const cv::Mat& img)
 {
-    calcOptFlow(img, time(0));
+    calcOptFlow(img, microsSinceEpoch());
 }
 
-int parseCommandline(int argc, char* argv[], std::string &res, std::string &calib_path, int num_features)
+int parseCommandline(int argc, char* argv[], std::string &res, std::string &calib_path, int &num_features, int &fps)
 {
     int c;
     int ret = 0;
 
-    while ((c = getopt(argc, argv, "c:r:n")) != -1) {
+    while ((c = getopt(argc, argv, "c:r:n:f:")) != -1) {
         switch (c) {
         case 'c':
             {
@@ -210,6 +227,12 @@ int parseCommandline(int argc, char* argv[], std::string &res, std::string &cali
         case 'n':
             {
                 num_features = atoi(optarg);
+                num_features = num_features < 0 ? 0 : num_features;
+                break;
+            }
+        case 'f':
+            {
+                fps = atoi(optarg);
                 break;
             }
         case '?':
@@ -228,10 +251,11 @@ int main(int argc, char **argv)
 {
     // set default values
     std::string res = "VGA";
-    std::string calibration_path = "../calib/cameraParams.yaml";
+    std::string calibration_path = "../calib/cameraParameters.yaml";
     int num_features = 10;
+    int fps = 15;
 
-    parseCommandline(argc, argv, res, calibration_path, num_features);
+    parseCommandline(argc, argv, res, calibration_path, num_features, fps);
 
     loadCustomCameraCalibration(calibration_path);
 
@@ -254,6 +278,24 @@ int main(int argc, char **argv)
     } else {
         printf("Invalid resolution specification %s. Defaulting to VGA\n", res.c_str());
         cfg.pSize = CameraSizes::stereoQVGASize();
+    }
+
+    if (fps == 15)
+        cfg.fps = 0;
+    else if (fps = 24)
+        cfg.fps = 1;
+    else if (fps = 30)
+        cfg.fps = 2;
+    else if (fps = 60)
+        cfg.fps = 3;
+    else if (fps = 90)
+        cfg.fps = 4;
+    else if (fps = 120)
+        cfg.fps = 5;
+    else
+    {
+        cfg.fps = 0;
+        printf("Invalid frame-rate option %d.\n", fps);
     }
 
     // try to setup udp socket for communcation

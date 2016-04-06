@@ -7,15 +7,12 @@
     <param name="camera_type" value="optflow"/>
 
     <!--
-    highres:      0: QVGASize (320,240)
-                  1: VGASize (640,480)
-                  2: HDSize (1280,720)
-                  3: FHDSize (1920,1080)
-                  4: 4KSize (4096,2160) -->
-    <param name="camera_resolution" value="4"/>
+    optical flow: 0: QVGASize (320,240)
+                  1: VGASize (640,480) -->
+    <param name="camera_resolution" value="1"/>
 
     <!--
-    highres: 0: 15 1: 24 2: 30 3: 60 4: 90 6: 120 -->
+    optical flow: 0: 15 1: 24 2: 30 3: 60 4: 90 5: 120 -->
     <param name="camera_fps" value="0"/>
 
     <param name="topic_name" value="image"/>
