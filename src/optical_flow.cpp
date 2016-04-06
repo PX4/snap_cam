@@ -230,6 +230,8 @@ int main(int argc, char **argv)
 
     parseCommandline(argc, argv, res, calibration_path);
 
+    loadCustomCameraCalibration(calibration_path);
+
     CamConfig cfg;
     cfg.func = CAM_FUNC_OPTIC_FLOW;
     if (res == "4k") {

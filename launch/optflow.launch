@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-  <node pkg="snap_cam" type="snap_cam_publisher_node" name="snap_cam_highres_publisher" output="screen">
+  <node pkg="snap_cam" type="snap_cam_publisher_node" name="snap_cam_optflow_publisher" output="screen">
+
     <!--
-    0: optical flow camera_type
-    1: highres camera_type -->
-    <param name="camera_type" value="1"/>
+    "optflow" or "highres" -->
+    <param name="camera_type" value="optflow"/>
 
     <!--
     highres:      0: QVGASize (320,240)
@@ -17,6 +17,7 @@
     <!--
     highres: 0: 15 1: 24 2: 30 3: 60 4: 90 6: 120 -->
     <param name="camera_fps" value="0"/>
-    <param name="topic_name" value="snap_cam/highres/image"/>
+
+    <param name="topic_name" value="image"/>
   </node>
 </launch>

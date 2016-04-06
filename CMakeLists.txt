@@ -51,33 +51,37 @@ include_directories(
 	${OpenCV_INCLUDE_DIRS}
 	./libcamera/inc
 	./libcamera/src
-	)
+)
 
 find_library(camera_LIBRARIES NAMES camera PATHS /usr/lib)
 
 if (NOT camera_LIBRARIES)
-    message(FATAL_ERROR "Could not find camera libraries")
+    message(WARNING "Could not find camera libraries, not building targets that depend on it")
 endif()
 
 ## Declare a C++ library
-add_library(snap_cam
-  src/SnapCam.cpp
-)
-target_link_libraries(snap_cam
-  ${OpenCV_LIBS}
-  ${camera_LIBRARIES}
-)
+if (camera_LIBRARIES)
+    add_library(snap_cam
+      src/SnapCam.cpp
+    )
+    target_link_libraries(snap_cam
+      ${OpenCV_LIBS}
+      ${camera_LIBRARIES}
+    )
 
-add_executable(optical_flow src/optical_flow.cpp)
-target_link_libraries(optical_flow yaml-cpp
-    ${catkin_LIBRARIES}
-    ${OpenCV_LIBS}
-    snap_cam
-    klt_feature_tracker
-)
+    add_executable(optical_flow src/optical_flow.cpp)
+    target_link_libraries(optical_flow yaml-cpp
+        ${catkin_LIBRARIES}
+        ${OpenCV_LIBS}
+        snap_cam
+        klt_feature_tracker
+    )
+endif()
 
 # add the ROS executables
 if(CATKIN_BUILD)
-    add_executable(snap_cam_publisher src/nodes/snap_cam_publisher_node.cpp)
-    target_link_libraries(snap_cam_publisher yaml-cpp ${catkin_LIBRARIES} ${OpenCV_LIBS} snap_cam)
+    if (camera_LIBRARIES)
+        add_executable(snap_cam_publisher_node src/nodes/snap_cam_publisher_node.cpp)
+        target_link_libraries(snap_cam_publisher_node yaml-cpp ${catkin_LIBRARIES} ${OpenCV_LIBS} snap_cam)
+    endif()
 endif()

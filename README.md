@@ -102,11 +102,35 @@ adb push /path/to/file /home/linaro/
 dpkg -i opencv3_20160222-1_armhf.deb
 ```
 
-## Image publisher node
+### Image publisher node
 Once your catkin workspace is built and sourced you can start the image publisher using
 ```sh
-roslaunch snap_cam snap_cam_node.launch
+roslaunch snap_cam <CAM>.launch
 ```
-You can set the parameters (camera, resolution and fps) in the launch file (/pathToYourCatkinWs/src/snap_cam/launch/optical_flow_node.launch)
+where `<CAM>` is either `optflow` or `highres` to stream the optical flow or high resolution cameras, respectively.
+You can set the parameters (camera, resolution and fps) in the launch files (``pathToYourCatkinWs/src/snap_cam/launch/<cam>.launch`)
 
 You can now subscribe to the images in your own ROS node.
+
+### Camera calibration
+For optical flow computations, the optical flow camera needs to be calibrated.
+For this you must build this package with catkin as described above and launch the optical flow image publisher:
+```sh
+roslaunch snap_cam optflow.launch
+```
+
+Clone and build this package in a catkin workspace on your computer.
+On your computer launch the calibration app:
+```sh
+export ROS_MASTER_URI=http://<snapdragon IP>:11311
+roslaunch snap_cam cameraCalibrator.launch
+```
+
+Set the appropriate checkerboard parameters in the app.
+Start recording by clicking on the button and record your checkerboard from sufficiently varying angles.
+Once done, click stop recording.
+The camera calibration will be written to `pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml`.
+Push this file to your snapdragon.
+```sh
+adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnapCam/calib/cameraParameters.yaml
+```

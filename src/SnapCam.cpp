@@ -78,7 +78,7 @@ int SnapCam::initialize(CamConfig cfg)
     int rc;
     rc = ICameraDevice::createInstance(cfg.func, &camera_);
     if (rc != 0) {
-        printf("could not open camera %d\n", cfg.func);
+        printf("Could not open camera %d\n", cfg.func);
         return rc;
     }
     camera_->addListener(this);
@@ -143,7 +143,6 @@ int SnapCam::initialize(CamConfig cfg)
 
 SnapCam::~SnapCam()
 {
-  printf("stop preview. frame counter = %d\n", frameCounter);
   camera_->stopPreview();
 
   /* release camera device */

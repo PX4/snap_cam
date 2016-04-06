@@ -33,8 +33,13 @@ void imageCallback(const cv::Mat& img)
     cv_bridge::CvImage cvi;
     cvi.header.stamp = ros::Time::now();
     cvi.header.frame_id = "image";
-    cvi.encoding = "bgr8";
     cvi.image = img;
+
+    if (img.channels() == 1) { // optical flow
+        cvi.encoding = "mono8";
+    } else { // highres
+        cvi.encoding = "bgr8";
+    }
 
     sensor_msgs::Image im;
     cvi.toImageMsg(im);
@@ -48,12 +53,9 @@ int main(int argc, char **argv)
 
     std::string topic_name;
 
-    if (nh.getParam("topic_name", topic_name)) {
-        ROS_INFO("Got topic name: %s", topic_name.c_str());
-    } else {
-        std::string default_topicName = "image";
-        ROS_INFO("Could not get topic_name: default topic name: %s", default_topicName.c_str());
-        topic_name = default_topicName;
+    if (!nh.getParam("topic_name", topic_name)) {
+        topic_name = "image";
+        ROS_WARN("No topic name parameter provided. Defaulting to: %s.", topic_name.c_str());
     }
 
     pub = nh.advertise<sensor_msgs::Image>(topic_name.c_str(), 1);
@@ -61,11 +63,26 @@ int main(int argc, char **argv)
     std::string res;
     if (!nh.getParam("resolution", res)) {
         res = "VGA";
-        ROS_WARN("Could not get topic_name. Defaulting to %s", res.c_str());
+        ROS_WARN("No resolution parameter provided. Defaulting to %s.", res.c_str());
+    }
+
+    std::string camera_type;
+    if (!nh.getParam("camera_type", camera_type)) {
+        camera_type = "highres";
+        ROS_WARN("No camera type parameter provided. Defaulting to %s.", camera_type.c_str() );
     }
 
     CamConfig cfg;
-    cfg.func = CAM_FUNC_OPTIC_FLOW; // TODO get from ROS parameters
+
+    if (camera_type == "highres") {
+        cfg.func = CAM_FUNC_HIRES;
+    } else if (camera_type == "optflow") {
+        cfg.func = CAM_FUNC_OPTIC_FLOW;
+    } else {
+        ROS_ERROR("Invalid camera type %s. Defaulting to highres.", camera_type.c_str());
+        cfg.func = CAM_FUNC_HIRES;
+    }
+
     if (res == "4k") {
         cfg.pSize = CameraSizes::UHDSize();
     } else if (res == "1080p") {
@@ -81,7 +98,7 @@ int main(int argc, char **argv)
     } else if (res == "stereoQVGA") {
         cfg.pSize = CameraSizes::stereoQVGASize();
     } else {
-        printf("Invalid resolution specification %s. Defaulting to VGA\n", res.c_str());
+        ROS_ERROR("Invalid resolution %s. Defaulting to VGA\n", res.c_str());
         cfg.pSize = CameraSizes::stereoVGASize();
     }
 
