@@ -194,7 +194,7 @@ int parseCommandline(int argc, char* argv[], std::string &res, std::string &cali
 {
     // set default values
     res = "VGA";
-    calib_path = "cameraParams.yaml";
+    calib_path = "../calib/cameraParams.yaml";
 
     int c;
     int ret = 0;
@@ -203,7 +203,7 @@ int parseCommandline(int argc, char* argv[], std::string &res, std::string &cali
         switch (c) {
         case 'c':
             {
-                res =  std::string(optarg);
+                calib_path =  std::string(optarg);
                 break;
             }
         case 'r':

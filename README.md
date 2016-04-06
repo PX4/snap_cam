@@ -102,17 +102,17 @@ adb push /path/to/file /home/linaro/
 dpkg -i opencv3_20160222-1_armhf.deb
 ```
 
-### Image publisher node
+## Image publisher node
 Once your catkin workspace is built and sourced you can start the image publisher using
 ```sh
 roslaunch snap_cam <CAM>.launch
 ```
 where `<CAM>` is either `optflow` or `highres` to stream the optical flow or high resolution cameras, respectively.
-You can set the parameters (camera, resolution and fps) in the launch files (``pathToYourCatkinWs/src/snap_cam/launch/<cam>.launch`)
+You can set the parameters (camera, resolution and fps) in the launch files (`pathToYourCatkinWs/src/snap_cam/launch/<cam>.launch`)
 
 You can now subscribe to the images in your own ROS node.
 
-### Camera calibration
+## Camera calibration
 For optical flow computations, the optical flow camera needs to be calibrated.
 For this you must build this package with catkin as described above and launch the optical flow image publisher:
 ```sh
@@ -134,3 +134,11 @@ Push this file to your snapdragon.
 ```sh
 adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnapCam/calib/cameraParameters.yaml
 ```
+
+## Running the optical flow
+Assuming that you want to run the optical flow code without ROS, i.e. by building it according to the plain CMake instructions above, and with an appropriate calibration file, run the following in your build directory:
+```sh
+./optical_flow [-c /path/to/cameraParameters.yaml -r cam_resolution]
+```
+Both arguments are optional. The default path to look for the calibration is `../calib/cameraParameters.yaml`. The default resolution is `VGA`.
+Valid resolutions are `VGA` and `QVGA`.
