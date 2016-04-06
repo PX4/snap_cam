@@ -190,16 +190,12 @@ void imageCallback(const cv::Mat& img)
     calcOptFlow(img, time(0));
 }
 
-int parseCommandline(int argc, char* argv[], std::string &res, std::string &calib_path)
+int parseCommandline(int argc, char* argv[], std::string &res, std::string &calib_path, int num_features)
 {
-    // set default values
-    res = "VGA";
-    calib_path = "../calib/cameraParams.yaml";
-
     int c;
     int ret = 0;
 
-    while ((c = getopt(argc, argv, "c:r:")) != -1) {
+    while ((c = getopt(argc, argv, "c:r:n")) != -1) {
         switch (c) {
         case 'c':
             {
@@ -209,6 +205,11 @@ int parseCommandline(int argc, char* argv[], std::string &res, std::string &cali
         case 'r':
             {
                 res = std::string(optarg);
+                break;
+            }
+        case 'n':
+            {
+                num_features = atoi(optarg);
                 break;
             }
         case '?':
@@ -225,10 +226,12 @@ int parseCommandline(int argc, char* argv[], std::string &res, std::string &cali
 
 int main(int argc, char **argv)
 {
-    std::string res;
-    std::string calibration_path;
+    // set default values
+    std::string res = "VGA";
+    std::string calibration_path = "../calib/cameraParams.yaml";
+    int num_features = 10;
 
-    parseCommandline(argc, argv, res, calibration_path);
+    parseCommandline(argc, argv, res, calibration_path, num_features);
 
     loadCustomCameraCalibration(calibration_path);
 
@@ -265,7 +268,7 @@ int main(int argc, char **argv)
 
     _addrlen = sizeof(_srcaddr);
 
-    updateVector.resize(100, 2);
+    updateVector.resize(num_features, 2);
 
     SnapCam cam(cfg);
     cam.setListener(imageCallback);

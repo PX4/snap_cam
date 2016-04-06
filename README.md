@@ -138,7 +138,9 @@ adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnap
 ## Running the optical flow
 Assuming that you want to run the optical flow code without ROS, i.e. by building it according to the plain CMake instructions above, and with an appropriate calibration file, run the following in your build directory:
 ```sh
-./optical_flow [-c /path/to/cameraParameters.yaml -r cam_resolution]
+./optical_flow [-c /path/to/cameraParameters.yaml -r cam_resolution -n num_features]
 ```
-Both arguments are optional. The default path to look for the calibration is `../calib/cameraParameters.yaml`. The default resolution is `VGA`.
-Valid resolutions are `VGA` and `QVGA`.
+All arguments are optional.
+* `-c` specifies the calibration file. The default is `../calib/cameraParameters.yaml`.
+* `-r` specifies the camera resolution. The default is `VGA`. Valid resolutions are `VGA` and `QVGA`.
+* `-n` specifies the number of features with which to compute the optical flow. The default is 10.
