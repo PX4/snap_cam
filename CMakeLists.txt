@@ -11,7 +11,7 @@ else()
     message(STATUS "Building ${PROJECT_NAME} without catkin")
 endif()
 
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -Wno-format-security")
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS} -Wno-format-security -Wno-literal-suffix")
 
 find_package(OpenCV REQUIRED)
 
@@ -42,7 +42,7 @@ else()
     # assume that it is in the same directory as this package
     add_subdirectory( ../klt_feature_tracker build)
     include_directories( ../klt_feature_tracker/include)
-    include_directories(src/mavlink)
+    include_directories(src) # for mavlink
 endif()
 
 include_directories(
