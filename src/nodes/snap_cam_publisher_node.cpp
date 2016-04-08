@@ -27,85 +27,97 @@
 
 ros::Publisher pub;
 
-void imageCallback(const cv::Mat& img)
+void imageCallback(const cv::Mat &img)
 {
-    // convert OpenCV image to ROS message
-    cv_bridge::CvImage cvi;
-    cvi.header.stamp = ros::Time::now();
-    cvi.header.frame_id = "image";
-    cvi.image = img;
+	// convert OpenCV image to ROS message
+	cv_bridge::CvImage cvi;
+	cvi.header.stamp = ros::Time::now();
+	cvi.header.frame_id = "image";
+	cvi.image = img;
 
-    if (img.channels() == 1) { // optical flow
-        cvi.encoding = "mono8";
-    } else { // highres
-        cvi.encoding = "bgr8";
-    }
+	if (img.channels() == 1) { // optical flow
+		cvi.encoding = "mono8";
 
-    sensor_msgs::Image im;
-    cvi.toImageMsg(im);
-    pub.publish(im);
+	} else { // highres
+		cvi.encoding = "bgr8";
+	}
+
+	sensor_msgs::Image im;
+	cvi.toImageMsg(im);
+	pub.publish(im);
 }
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "snap_cam_publisher");
-    ros::NodeHandle nh("~");
+	ros::init(argc, argv, "snap_cam_publisher");
+	ros::NodeHandle nh("~");
 
-    std::string topic_name;
+	std::string topic_name;
 
-    if (!nh.getParam("topic_name", topic_name)) {
-        topic_name = "image";
-        ROS_WARN("No topic name parameter provided. Defaulting to: %s.", topic_name.c_str());
-    }
+	if (!nh.getParam("topic_name", topic_name)) {
+		topic_name = "image";
+		ROS_WARN("No topic name parameter provided. Defaulting to: %s.", topic_name.c_str());
+	}
 
-    pub = nh.advertise<sensor_msgs::Image>(topic_name.c_str(), 1);
+	pub = nh.advertise<sensor_msgs::Image>(topic_name.c_str(), 1);
 
-    std::string res;
-    if (!nh.getParam("resolution", res)) {
-        res = "VGA";
-        ROS_WARN("No resolution parameter provided. Defaulting to %s.", res.c_str());
-    }
+	std::string res;
 
-    std::string camera_type;
-    if (!nh.getParam("camera_type", camera_type)) {
-        camera_type = "highres";
-        ROS_WARN("No camera type parameter provided. Defaulting to %s.", camera_type.c_str() );
-    }
+	if (!nh.getParam("resolution", res)) {
+		res = "VGA";
+		ROS_WARN("No resolution parameter provided. Defaulting to %s.", res.c_str());
+	}
 
-    CamConfig cfg;
+	std::string camera_type;
 
-    if (camera_type == "highres") {
-        cfg.func = CAM_FUNC_HIRES;
-    } else if (camera_type == "optflow") {
-        cfg.func = CAM_FUNC_OPTIC_FLOW;
-    } else {
-        ROS_ERROR("Invalid camera type %s. Defaulting to highres.", camera_type.c_str());
-        cfg.func = CAM_FUNC_HIRES;
-    }
+	if (!nh.getParam("camera_type", camera_type)) {
+		camera_type = "highres";
+		ROS_WARN("No camera type parameter provided. Defaulting to %s.", camera_type.c_str());
+	}
 
-    if (res == "4k") {
-        cfg.pSize = CameraSizes::UHDSize();
-    } else if (res == "1080p") {
-        cfg.pSize = CameraSizes::FHDSize();
-    } else if (res == "720p") {
-        cfg.pSize = CameraSizes::HDSize();
-    } else if (res == "VGA") {
-        cfg.pSize = CameraSizes::VGASize();
-    } else if (res == "QVGA") {
-        cfg.pSize = CameraSizes::QVGASize();
-    } else if (res == "stereoVGA") {
-        cfg.pSize = CameraSizes::stereoVGASize();
-    } else if (res == "stereoQVGA") {
-        cfg.pSize = CameraSizes::stereoQVGASize();
-    } else {
-        ROS_ERROR("Invalid resolution %s. Defaulting to VGA\n", res.c_str());
-        cfg.pSize = CameraSizes::stereoVGASize();
-    }
+	CamConfig cfg;
 
-    SnapCam cam(cfg);
-    cam.setListener(imageCallback);
+	if (camera_type == "highres") {
+		cfg.func = CAM_FUNC_HIRES;
 
-    ros::spin();
+	} else if (camera_type == "optflow") {
+		cfg.func = CAM_FUNC_OPTIC_FLOW;
 
-    return 0;
+	} else {
+		ROS_ERROR("Invalid camera type %s. Defaulting to highres.", camera_type.c_str());
+		cfg.func = CAM_FUNC_HIRES;
+	}
+
+	if (res == "4k") {
+		cfg.pSize = CameraSizes::UHDSize();
+
+	} else if (res == "1080p") {
+		cfg.pSize = CameraSizes::FHDSize();
+
+	} else if (res == "720p") {
+		cfg.pSize = CameraSizes::HDSize();
+
+	} else if (res == "VGA") {
+		cfg.pSize = CameraSizes::VGASize();
+
+	} else if (res == "QVGA") {
+		cfg.pSize = CameraSizes::QVGASize();
+
+	} else if (res == "stereoVGA") {
+		cfg.pSize = CameraSizes::stereoVGASize();
+
+	} else if (res == "stereoQVGA") {
+		cfg.pSize = CameraSizes::stereoQVGASize();
+
+	} else {
+		ROS_ERROR("Invalid resolution %s. Defaulting to VGA\n", res.c_str());
+		cfg.pSize = CameraSizes::stereoVGASize();
+	}
+
+	SnapCam cam(cfg);
+	cam.setListener(imageCallback);
+
+	ros::spin();
+
+	return 0;
 }

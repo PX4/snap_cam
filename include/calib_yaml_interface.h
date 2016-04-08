@@ -7,8 +7,7 @@
 
 // cameraParameters
 // =========================================================
-struct CameraParameters // parameters of one camera
-{
+struct CameraParameters { // parameters of one camera
 	double CameraMatrix[3][3];
 	double FocalLength[2];
 	double PrincipalPoint[2];
@@ -18,7 +17,7 @@ struct CameraParameters // parameters of one camera
 };
 
 
-inline CameraParameters parseYaml(const YAML::Node& node)
+inline CameraParameters parseYaml(const YAML::Node &node)
 {
 	CameraParameters v;
 
@@ -26,6 +25,7 @@ inline CameraParameters parseYaml(const YAML::Node& node)
 	std::string atan = "atan";
 
 	YAML::Node CameraMatrix = node["CameraMatrix"];
+
 	for (std::size_t i = 0; i < CameraMatrix.size(); i++) {
 		for (std::size_t j = 0; j < CameraMatrix[i].size(); j++) {
 			v.CameraMatrix[i][j] = CameraMatrix[i][j].as<double>();
@@ -34,24 +34,35 @@ inline CameraParameters parseYaml(const YAML::Node& node)
 
 
 	YAML::Node DistortionModel = node["DistortionModel"];
-	if (!atan.compare(DistortionModel.as<std::string>()))
+
+	if (!atan.compare(DistortionModel.as<std::string>())) {
 		v.DistortionModel = v.ATAN;
-	else
+
+	} else {
 		v.DistortionModel = v.PLUMB_BOB;
+	}
 
 	YAML::Node RadialDistortion = node["RadialDistortion"];
-	for (std::size_t i = 0; i < RadialDistortion.size(); i++)
+
+	for (std::size_t i = 0; i < RadialDistortion.size(); i++) {
 		v.RadialDistortion[i] = RadialDistortion[i].as<double>();
-	for (std::size_t i = RadialDistortion.size(); i < 3; i++)
+	}
+
+	for (std::size_t i = RadialDistortion.size(); i < 3; i++) {
 		v.RadialDistortion[i] = 0.0;
+	}
 
 	YAML::Node FocalLength = node["FocalLength"];
-	for (std::size_t i = 0; i < FocalLength.size(); i++)
+
+	for (std::size_t i = 0; i < FocalLength.size(); i++) {
 		v.FocalLength[i] = FocalLength[i].as<double>();
+	}
 
 	YAML::Node PrincipalPoint = node["PrincipalPoint"];
-	for (std::size_t i = 0; i < PrincipalPoint.size(); i++)
+
+	for (std::size_t i = 0; i < PrincipalPoint.size(); i++) {
 		v.PrincipalPoint[i] = PrincipalPoint[i].as<double>();
+	}
 
 	return v;
 }

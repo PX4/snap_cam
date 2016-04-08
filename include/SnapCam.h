@@ -70,76 +70,73 @@ using namespace std;
 using namespace camera;
 
 // workaround to only have to define these once
-struct CameraSizes
-{
-    static ImageSize FourKSize()        {static ImageSize is(4096,2160); return is;};
-    static ImageSize UHDSize()          {static ImageSize is(3840,2160); return is;};
-    static ImageSize FHDSize()          {static ImageSize is(1920,1080); return is;};
-    static ImageSize HDSize()           {static ImageSize is(1280, 720); return is;};
-    static ImageSize VGASize()          {static ImageSize is( 640, 480); return is;};
-    static ImageSize stereoVGASize()    {static ImageSize is(1280, 480); return is;};
-    static ImageSize QVGASize()         {static ImageSize is( 320, 240); return is;};
-    static ImageSize stereoQVGASize()   {static ImageSize is( 640, 240); return is;};
+struct CameraSizes {
+	static ImageSize FourKSize()        {static ImageSize is(4096, 2160); return is;};
+	static ImageSize UHDSize()          {static ImageSize is(3840, 2160); return is;};
+	static ImageSize FHDSize()          {static ImageSize is(1920, 1080); return is;};
+	static ImageSize HDSize()           {static ImageSize is(1280, 720); return is;};
+	static ImageSize VGASize()          {static ImageSize is(640, 480); return is;};
+	static ImageSize stereoVGASize()    {static ImageSize is(1280, 480); return is;};
+	static ImageSize QVGASize()         {static ImageSize is(320, 240); return is;};
+	static ImageSize stereoQVGASize()   {static ImageSize is(640, 240); return is;};
 };
 
-struct CameraCaps
-{
-    vector<ImageSize> pSizes, vSizes, picSizes;
-    vector<string> focusModes, wbModes, isoModes;
-    Range brightness, sharpness, contrast;
-    vector<Range> previewFpsRanges;
-    vector<VideoFPS> videoFpsValues;
-    vector<string> previewFormats;
-    string rawSize;
+struct CameraCaps {
+	vector<ImageSize> pSizes, vSizes, picSizes;
+	vector<string> focusModes, wbModes, isoModes;
+	Range brightness, sharpness, contrast;
+	vector<Range> previewFpsRanges;
+	vector<VideoFPS> videoFpsValues;
+	vector<string> previewFormats;
+	string rawSize;
 };
 
-enum OutputFormatType{
-    YUV_FORMAT,
-    RAW_FORMAT,
-    JPEG_FORMAT
+enum OutputFormatType {
+	YUV_FORMAT,
+	RAW_FORMAT,
+	JPEG_FORMAT
 };
 
 // TODO HIRES and OPTIC_FLOW are switched?
 enum CamFunction {
-    CAM_FUNC_OPTIC_FLOW = 0,
-    CAM_FUNC_HIRES = 1,
-    CAM_FUNC_RIGHT_SENSOR = 2,
-    CAM_FUNC_STEREO = 3,
+	CAM_FUNC_OPTIC_FLOW = 0,
+	CAM_FUNC_HIRES = 1,
+	CAM_FUNC_RIGHT_SENSOR = 2,
+	CAM_FUNC_STEREO = 3,
 };
 
 enum AppLoglevel {
-    CAM_LOG_SILENT = 0,
-    CAM_LOG_ERROR = 1,
-    CAM_LOG_INFO = 2,
-    CAM_LOG_DEBUG = 3,
-    CAM_LOG_MAX,
+	CAM_LOG_SILENT = 0,
+	CAM_LOG_ERROR = 1,
+	CAM_LOG_INFO = 2,
+	CAM_LOG_DEBUG = 3,
+	CAM_LOG_MAX,
 };
 
 /**
 *  Helper class to store all parameter settings
 */
-struct CamConfig
-{
-    bool dumpFrames;
-    bool infoMode;
-    bool testSnapshot;
-    bool testVideo;
-    int runTime;
-    int exposureValue;
-    int gainValue;
-    CamFunction func;
-    OutputFormatType outputFormat;
-    OutputFormatType snapshotFormat;
-    ImageSize pSize;
-    ImageSize vSize;
-    ImageSize picSize;
-    int picSizeIdx;
-    int fps;
-    AppLoglevel logLevel;
+struct CamConfig {
+	bool dumpFrames;
+	bool infoMode;
+	bool testSnapshot;
+	bool testVideo;
+	int runTime;
+	int exposureValue;
+	int gainValue;
+	CamFunction func;
+	OutputFormatType outputFormat;
+	OutputFormatType snapshotFormat;
+	ImageSize pSize;
+	ImageSize vSize;
+	ImageSize picSize;
+	int picSizeIdx;
+	int fps;
+	AppLoglevel logLevel;
 };
 
 // Callback function.
-typedef std::function<void(const cv::Mat&)> CallbackFunction;
+typedef std::function<void(const cv::Mat &, uint64_t time_stamp)> CallbackFunction;
 
 /**
  * CLASS  SnapCam
@@ -151,49 +148,49 @@ class SnapCam : ICameraListener
 {
 public:
 
-    SnapCam(CamConfig cfg);
-    SnapCam(int argc, char* argv[]);
-    SnapCam(std::string config_str);
-    ~SnapCam();
+	SnapCam(CamConfig cfg);
+	SnapCam(int argc, char *argv[]);
+	SnapCam(std::string config_str);
+	~SnapCam();
 
-    void setListener(CallbackFunction fun);  // register a function callback
-    template <class T>
-    void setListener(CallbackFunction fun, T* obj);  //register a function callback that is a class member
+	void setListener(CallbackFunction fun);  // register a function callback
+	template <class T>
+	void setListener(CallbackFunction fun, T *obj);  //register a function callback that is a class member
 
-    /* listener methods */
-    virtual void onError();
-    virtual void onPreviewFrame(ICameraFrame* frame);
+	/* listener methods */
+	virtual void onError();
+	virtual void onPreviewFrame(ICameraFrame *frame);
 
 private:
-    int initialize(CamConfig cfg);
+	int initialize(CamConfig cfg);
 
-    ICameraDevice* camera_;
-    CameraParams params_;
-    ImageSize pSize_, vSize_, picSize_;
-    CameraCaps caps_;
-    CamConfig config_;
+	ICameraDevice *camera_;
+	CameraParams params_;
+	ImageSize pSize_, vSize_, picSize_;
+	CameraCaps caps_;
+	CamConfig config_;
 
-    uint32_t vFrameCount_, pFrameCount_;
-    float vFpsAvg_, pFpsAvg_;
+	uint32_t vFrameCount_, pFrameCount_;
+	float vFpsAvg_, pFpsAvg_;
 
-    uint64_t vTimeStampPrev_, pTimeStampPrev_;
+	uint64_t vTimeStampPrev_, pTimeStampPrev_;
 
-    pthread_cond_t cvPicDone;
-    pthread_mutex_t mutexPicDone;
-    bool isPicDone;
+	pthread_cond_t cvPicDone;
+	pthread_mutex_t mutexPicDone;
+	bool isPicDone;
 
-    int frameCounter;
-    int camera_type;
-    int camera_resolution;
-    int camera_fps;
-    int camera_used;
-    std::string topic_name;
+	int frameCounter;
+	int camera_type;
+	int camera_resolution;
+	int camera_fps;
+	int camera_used;
+	std::string topic_name;
 
-    int printCapabilities();
-    int setParameters();
-    int setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx);
+	int printCapabilities();
+	int setParameters();
+	int setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx);
 
-    CallbackFunction cb_;
+	CallbackFunction cb_;
 };
 
 #endif // _SNAP_CAM_
