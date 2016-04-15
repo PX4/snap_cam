@@ -27,7 +27,7 @@
 
 ros::Publisher pub;
 
-void imageCallback(const cv::Mat &img)
+void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 {
 	// convert OpenCV image to ROS message
 	cv_bridge::CvImage cvi;
