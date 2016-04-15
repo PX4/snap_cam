@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 {
 	// set default values
 	cl_params.res = "VGA";
-	cl_params.calibration_path = "../calib/cameraParameters.yaml";
+	cl_params.calibration_path = "";
 	cl_params.num_features = 10;
 	cl_params.fps = 15;
 	cl_params.target_ip = "127.0.0.1";
@@ -109,6 +109,16 @@ int main(int argc, char **argv)
 	cl_params.udp_remote_port = UDP_REMOTE_PORT_DEFAULT;
 
 	parseCommandline(argc, argv, cl_params);
+
+	//check which calibration file to take if calibration_path != "" assume it's the correct one
+	if (cl_params.calibration_path == "" && cl_params.res == "VGA") { //default
+		cl_params.calibration_path = "../calib/VGA/cameraParameters.yaml";
+		printf("[ INFO] using VGA/cameraParameters.yaml for calibration\n");
+	}
+	if (cl_params.calibration_path == "" && cl_params.res == "QVGA") { //default for QVGA
+		cl_params.calibration_path = "../calib/QVGA/cameraParameters.yaml";
+		printf("[ INFO] using QVGA/cameraParameters.yaml for calibration\n");
+	}
 
 	loadCustomCameraCalibration(cl_params.calibration_path);
 

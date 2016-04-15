@@ -214,7 +214,11 @@ class CameraCalibrator(QMainWindow):
                 return
 
         calib = dict()
-        calib_path = os.path.join(rospkg.RosPack().get_path('snap_cam'), 'calib', 'cameraParameters.yaml')
+        folder = 'calib/VGA' #default VGA resolution
+        if self.image.shape[1] < 321 # QVGA resolution
+            folder = 'calib/QVGA'
+
+        calib_path = os.path.join(rospkg.RosPack().get_path('snap_cam'), folder, 'cameraParameters.yaml')
         if not os.path.exists(os.path.dirname(calib_path)):
             rospy.loginfo('Directory does not exist yet. Creating directory.')
             os.makedirs(os.path.dirname(calib_path))
