@@ -11,9 +11,15 @@ git clone https://github.com/ethz-ait/klt_feature_tracker.git
 git clone https://github.com/ChristophTobler/snap_cam.git
 ```
 
-Compile with:
+Initialize the Mavlink submodule:
 ```sh
 cd snap_cam
+git submodule init
+git submodule update --recursive
+```
+
+Compile with:
+```sh
 mkdir -p build
 cd build
 cmake ..
