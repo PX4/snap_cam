@@ -1,7 +1,8 @@
 # Snapdragon: Camera driver
+This package provides tools to work with the Snapdragon Flight cameras as well as perform optical flow for use with the PX4 flight stack.
+The package can be used with ROS by building with catkin or, alternatively, with pure cmake, where only the executables that do not depend on ROS will be built.
 
-This page shows you how to set up your snapdragon flight to use the cameras and optical flow.
-The described package can be used with ROS by building with catkin or, alternatively, with pure cmake, where only the executables that do not depend on ROS will be built.
+The package is to be compiled on the Snapdragon board. Two variants are provided: Building with ROS, where all features are available, and building with pure CMake, where only ROS-independent applications are compiled (including the optical flow node).
 
 ## Building with pure CMake
 For the pure CMake install variant, clone the required repositories in a directory, e.g. `~/src`:
@@ -28,43 +29,39 @@ make
 
 Run the optical flow application with (note that you need to be root for this):
 ```sh
-./optical_flow
+./optical_flow [arguments ...]
 ```
 
 ## Building with ROS
 ### Prerequisites
-To run the ROS nodes on the snapdragon flight, ROS indigo has to be installed. Follow [this](http://wiki.ros.org/indigo/Installation/UbuntuARM) link to install it on your snapdragon flight. (preferably using the linaro user: $ su linaro)
+To run the ROS nodes on the Snapdragon Flight, ROS indigo has to be installed. Follow [this](http://wiki.ros.org/indigo/Installation/UbuntuARM) link to install it on your Snapdragon Flight. (preferably using the linaro user: `$ su linaro`)
 
 If you're having permission issues while installing ros try
 ```sh
 sudo chown -R linaro:linaro /home/linaro
 ```
 
-#### Install the following packages:
-<br />  mavlink
+#### Install the following dependencies:
+ROS dependencies
 ```sh
-sudo apt-get install ros-indigo-mavlink
+sudo apt-get install ros-indigo-mavlink ros-indigo-tf ros-indigo-orocos-toolchain ros-indigo-angles ros-indigo-tf2 ros-indigo-tf2-ros
 ```
-<br />  tf
+
+Others
 ```sh
-sudo apt-get install ros-indigo-tf
+sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev
 ```
-orocos
+
+To install OpenCV, download and push the latest `.deb` package to the Snapdragon and install it using
+
+<div class="host-code"></div>
 ```sh
-sudo apt-get install ros-indigo-orocos-toolchain
-```
-angles
-```sh
-sudo apt-get install ros-indigo-angles
-```
-tf2/tf2_ros
-```sh
-sudo apt-get install ros-indigo-tf2
-sudo apt-get install ros-indigo-tf2-ros
+adb push /path/to/file /home/linaro/
+dpkg -i opencv3_20160222-1_armhf.deb
 ```
 
 #### create a catkin workspace
-Next you have to create a catkin workspace (e.g. in /home/linaro)
+Next, create a catkin workspace (e.g. in /home/linaro)
 ```sh
 mkdir -p ~/catkin_ws/src
 cd ~/catkin_ws/src
@@ -73,39 +70,15 @@ cd ..
 catkin_make
 ```
 
-Then clone the following four catkin packages and build again
+Then clone the following four catkin packages and build
 ```sh
 cd src
 git clone https://github.com/ros-perception/vision_opencv
 git clone https://github.com/ros-perception/image_common
 git clone https://github.com/ethz-ait/klt_feature_tracker.git
 git clone https://github.com/ChristophTobler/snap_cam.git
-```
-
-### Others
-eigen3
-```sh
-sudo apt-get install libeigen3-dev
-```
-sip
-```sh
-sudo apt-get install sip-dev
-```
-yaml-cpp
-```sh
-sudo apt-get install libyaml-cpp-dev
-```
-
-To install OpenCV, flash the package (where to put?) to the snapdragon and install it using
-
-<div class="host-code"></div>
-
-```sh
-adb push /path/to/file /home/linaro/
-
-```
-```sh
-dpkg -i opencv3_20160222-1_armhf.deb
+cd ..
+catkin_make
 ```
 
 ## Image publisher node
@@ -144,10 +117,10 @@ adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnap
 ## Running the optical flow
 Assuming that you want to run the optical flow code without ROS, i.e. by building it according to the plain CMake instructions above, and with an appropriate calibration file, run the following in your build directory:
 ```sh
-./optical_flow [-c /path/to/cameraParameters.yaml -r cam_resolution -n num_features -f fps]
+./optical_flow [arguments ...]
 ```
 All arguments are optional.
 * `-r` specifies the camera resolution. The default is `VGA`. Valid resolutions are `VGA` and `QVGA`.
 * `-f` specifies the camera frame-rate. The default is 15. Valid values are 15, 24, 30, 60, 90, 120.
 * `-n` specifies the number of features with which to compute the optical flow. The default is 10.
-* `-c` specifies the calibration file. The default is `../calib/cameraParameters.yaml`.
+* `-c` specifies the calibration file. The default is `../calib/VGA/cameraParameters.yaml`.

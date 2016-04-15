@@ -113,11 +113,11 @@ int main(int argc, char **argv)
 	//check which calibration file to take if calibration_path != "" assume it's the correct one
 	if (cl_params.calibration_path == "" && cl_params.res == "VGA") { //default
 		cl_params.calibration_path = "../calib/VGA/cameraParameters.yaml";
-		printf("[ INFO] using VGA/cameraParameters.yaml for calibration\n");
+		INFO("Using VGA/cameraParameters.yaml for calibration");
 	}
 	if (cl_params.calibration_path == "" && cl_params.res == "QVGA") { //default for QVGA
 		cl_params.calibration_path = "../calib/QVGA/cameraParameters.yaml";
-		printf("[ INFO] using QVGA/cameraParameters.yaml for calibration\n");
+		INFO("sing QVGA/cameraParameters.yaml for calibration");
 	}
 
 	loadCustomCameraCalibration(cl_params.calibration_path);
@@ -318,16 +318,11 @@ void sendOptFlowMessage()
 
 		GyroTimestamped g;
 
-		// first skip any gyro measurements that are too old (should not happen)
+		// first skip any gyro measurements that are too old (should only happen the first time)
 		do {
 			if (!rb_imu.get(&g)) {
 				ERROR("IMU buffer is empty while catching up");
 				break;
-			}
-
-			if (g.time_usec < integration_start_time) {
-				INFO("Discarding old IMU values. This IMU sample is %lld us too old.",
-				     long (integration_start_time) - long(g.time_usec));
 			}
 		} while (g.time_usec < integration_start_time);
 
