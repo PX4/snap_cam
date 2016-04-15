@@ -119,7 +119,7 @@ You can set the parameters (camera, resolution and fps) in the launch files (`pa
 You can now subscribe to the images in your own ROS node.
 
 ## Camera calibration
-For optical flow computations, the optical flow camera needs to be calibrated.
+For optical flow computations, a calibration file needs to be used. This package contains default calibration files for VGA and QVGA resolution. Nevertheless, we recommend calibrating your camera (see below) for better performance.
 For this you must build this package with catkin as described above and launch the optical flow image publisher:
 ```sh
 roslaunch snap_cam optflow.launch
