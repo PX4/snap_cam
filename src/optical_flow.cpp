@@ -480,7 +480,7 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 				sendOptFlowMessage();
 			}
 
-		} else {ERROR("no valid");}
+		} else {ERROR("No valid measurements");}
 	}
 
 	for (int i = 0; i < updateVector.size(); i++) {
