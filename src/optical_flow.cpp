@@ -322,7 +322,7 @@ void sendOptFlowMessage()
 		do {
 			if (!rb_imu.get(&g)) {
 				ERROR("IMU buffer is empty while catching up");
-				break;
+				return;
 			}
 		} while (g.time_usec < integration_start_time);
 
@@ -471,7 +471,7 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 				sensor_msg.temperature = 0.0;
 				sensor_msg.quality = flow_quality;
 				sensor_msg.time_delta_distance_us = 0.0; //?
-				sensor_msg.distance = 0.0;
+				sensor_msg.distance = -1.0; // mark as invalid
 
 				if (rb_flow.force(&sensor_msg)) {
 					WARN("Flow buffer is overflowing %d", rb_flow.space());
