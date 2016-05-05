@@ -22,10 +22,12 @@
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
+#include <image_transport/image_transport.h>
 
 #include "SnapCam.h"
 
-ros::Publisher pub;
+image_transport::Publisher image_pub;
+
 
 void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 {
@@ -44,13 +46,14 @@ void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 
 	sensor_msgs::Image im;
 	cvi.toImageMsg(im);
-	pub.publish(im);
+	image_pub.publish(im);
 }
 
 int main(int argc, char **argv)
 {
 	ros::init(argc, argv, "snap_cam_publisher");
 	ros::NodeHandle nh("~");
+	image_transport::ImageTransport it(nh);
 
 	std::string topic_name;
 
@@ -59,7 +62,7 @@ int main(int argc, char **argv)
 		ROS_WARN("No topic name parameter provided. Defaulting to: %s.", topic_name.c_str());
 	}
 
-	pub = nh.advertise<sensor_msgs::Image>(topic_name.c_str(), 1);
+	image_pub = it.advertise(topic_name.c_str(), 1);
 
 	std::string res;
 
