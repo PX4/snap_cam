@@ -74,7 +74,6 @@ if (camera_LIBRARIES)
         ${catkin_LIBRARIES}
         ${OpenCV_LIBS}
         snap_cam
-        klt_feature_tracker
     )
 endif()
 
