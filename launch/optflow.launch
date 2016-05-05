@@ -12,8 +12,8 @@
     <param name="camera_resolution" value="1"/>
 
     <!--
-    optical flow: 0: 15 1: 24 2: 30 3: 60 4: 90 5: 120 -->
-    <param name="camera_fps" value="0"/>
+    optical flow: 0: 15, 1: 24, 2: 30, 3: 60, 4: 90, 5: 30, 6: 30 -->
+    <param name="camera_fps_idx" value="0"/>
 
     <param name="topic_name" value="image"/>
   </node>

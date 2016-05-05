@@ -16,7 +16,7 @@
 
     <!--
     highres: 0: 15 1: 24 2: 30 3: 60 4: 90 6: 120 -->
-    <param name="camera_fps" value="0"/>
+    <param name="camera_fps_idx" value="0"/>
 
     <param name="topic_name" value="image"/>
   </node>

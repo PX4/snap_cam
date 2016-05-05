@@ -75,6 +75,12 @@ int main(int argc, char **argv)
 		ROS_WARN("No camera type parameter provided. Defaulting to %s.", camera_type.c_str());
 	}
 
+	int camera_fps_idx;
+	if (!nh.getParam("camera_fps_idx", camera_fps_idx)) {
+		camera_fps_idx = 0;
+		ROS_WARN("No camera fps idx parameter provided. Defaulting to %d.", camera_fps_idx);
+	}
+
 	CamConfig cfg;
 
 	if (camera_type == "highres") {
@@ -113,6 +119,8 @@ int main(int argc, char **argv)
 		ROS_ERROR("Invalid resolution %s. Defaulting to VGA\n", res.c_str());
 		cfg.pSize = CameraSizes::stereoVGASize();
 	}
+
+	cfg.fps = camera_fps_idx;
 
 	SnapCam cam(cfg);
 	cam.setListener(imageCallback);
