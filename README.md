@@ -9,7 +9,7 @@ For the pure CMake install variant, clone the required repositories in a directo
 ```sh
 cd ~/src
 git clone https://github.com/ethz-ait/klt_feature_tracker.git
-git clone https://github.com/ChristophTobler/snap_cam.git
+git clone https://github.com/PX4/snap_cam.git
 ```
 
 Initialize the Mavlink submodule:
