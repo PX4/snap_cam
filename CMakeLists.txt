@@ -40,9 +40,10 @@ if(CATKIN_BUILD)
 else()
     # if not building with catkin, we have to find klt_feature_tracker ourselves
     # assume that it is in the same directory as this package
-    add_subdirectory( ../klt_feature_tracker build)
+    add_subdirectory( ../klt_feature_tracker klt_feature_tracker)
     include_directories( ../klt_feature_tracker/include)
     include_directories(src) # for mavlink
+    set(klt_feature_tracker_LIBS "klt_feature_tracker") # Not needed with catkin
 endif()
 
 include_directories(
@@ -74,6 +75,7 @@ if (camera_LIBRARIES)
         ${catkin_LIBRARIES}
         ${OpenCV_LIBS}
         snap_cam
+        ${klt_feature_tracker_LIBS}
     )
 endif()
 
