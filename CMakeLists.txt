@@ -23,7 +23,6 @@ if(CATKIN_BUILD)
       cv_bridge
       image_transport
       klt_feature_tracker
-      sensor_msgs
       roscpp
       rospy
       sensor_msgs
