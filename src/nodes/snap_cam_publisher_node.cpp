@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
 	std::string res;
 
-	if (!nh.getParam("resolution", res)) {
+	if (!nh.getParam("camera_resolution", res)) {
 		res = "VGA";
 		ROS_WARN("No resolution parameter provided. Defaulting to %s.", res.c_str());
 	}

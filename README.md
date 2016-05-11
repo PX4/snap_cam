@@ -115,7 +115,8 @@ adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnap
 ```
 
 ## Running the optical flow
-Assuming that you want to run the optical flow code without ROS, i.e. by building it according to the plain CMake instructions above, and with an appropriate calibration file, run the following in your build directory:
+### With pure CMake
+Run the following in your build directory:
 ```sh
 ./optical_flow [arguments ...]
 ```
@@ -123,4 +124,11 @@ All arguments are optional.
 * `-r` specifies the camera resolution. The default is `VGA`. Valid resolutions are `VGA` and `QVGA`.
 * `-f` specifies the camera frame-rate. The default is 15. Valid values are 15, 24, 30, 60, 90, 120.
 * `-n` specifies the number of features with which to compute the optical flow. The default is 10.
-* `-c` specifies the calibration file. The default is `../calib/VGA/cameraParameters.yaml`.
+* `-c` specifies the calibration file. The default is `../calib/<resolution>/cameraParameters.yaml`.
+
+### With ROS
+After sourcing your workspace with `source ~/catkin_ws/devel/setup.bash`, run:
+```sh
+rosrun snap_cam optical_flow [arguments ...]
+```
+The arguments are the same as for the pure CMake build/=.

@@ -20,8 +20,11 @@
 #include <math.h>
 #include <typeinfo>
 #include <time.h>
-
 #include <opencv2/highgui/highgui.hpp>
+
+#ifdef CATKIN_BUILD
+#include <ros/package.h>
+#endif
 
 #include "trackFeatures.h"
 #include "calib_yaml_interface.h"
@@ -73,7 +76,7 @@ void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t componen
 void sendOptFlowMessage(uint64_t timestamp, uint32_t dt, double flow_x, double flow_y, double quality);
 void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp);
 void imageCallback(const cv::Mat &img, uint64_t time_stamp);
-int parseCommandline(int argc, char *argv[], Params cl_params);
+int parseCommandline(int argc, char *argv[], Params &cl_params);
 void handle_message(mavlink_message_t *msg);
 void handle_message_highres_imu(mavlink_message_t *msg);
 bool read_mavlink_messages(int &sock, struct sockaddr_in &theirAddr);
@@ -112,12 +115,21 @@ int main(int argc, char **argv)
 
 	//check which calibration file to take if calibration_path != "" assume it's the correct one
 	if (cl_params.calibration_path == "" && cl_params.res == "VGA") { //default
+#ifdef CATKIN_BUILD
+		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/VGA/cameraParameters.yaml";
+#else
 		cl_params.calibration_path = "../calib/VGA/cameraParameters.yaml";
 		INFO("Using VGA/cameraParameters.yaml for calibration");
+#endif
 	}
+
 	if (cl_params.calibration_path == "" && cl_params.res == "QVGA") { //default for QVGA
+#ifdef CATKIN_BUILD
+		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/QVGA/cameraParameters.yaml";
+#else
 		cl_params.calibration_path = "../calib/QVGA/cameraParameters.yaml";
 		INFO("sing QVGA/cameraParameters.yaml for calibration");
+#endif
 	}
 
 	loadCustomCameraCalibration(cl_params.calibration_path);
@@ -502,7 +514,7 @@ void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 	calcOptFlow(img, time_stamp);
 }
 
-int parseCommandline(int argc, char *argv[], Params cl_params)
+int parseCommandline(int argc, char *argv[], Params &cl_params)
 {
 	int c;
 	int ret = 0;
