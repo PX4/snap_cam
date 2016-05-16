@@ -105,6 +105,10 @@ export ROS_MASTER_URI=http://<snapdragon IP>:11311
 roslaunch snap_cam cameraCalibrator.launch
 ```
 
+NOTE:
+If your image topics are empty, make sure to set the environment variable ROS_IP to the respective IP on both devices.
+
+
 Set the appropriate checkerboard parameters in the app.
 Start recording by clicking on the button and record your checkerboard from sufficiently varying angles.
 Once done, click stop recording.
