@@ -214,9 +214,15 @@ class CameraCalibrator(QMainWindow):
                 return
 
         calib = dict()
-        folder = 'calib/VGA' #default VGA resolution
-        if self.image.shape[1] < 321: # QVGA resolution
-            folder = 'calib/QVGA'
+	folder = 'calib/4k' #default 4k resolution
+	if self.image.shape[1] < 1081: # imx214 90 deg rotated
+            folder = 'calib/1080p' # 1080p resolution
+	if self.image.shape[1] < 721: 
+            folder = 'calib/VGA' # 720p resolution
+	if self.image.shape[1] < 641: # ? hire or optflow
+            folder = 'calib/VGA' # VGA resolution
+        if self.image.shape[1] < 321: 
+            folder = 'calib/QVGA' # QVGA resolution
 
         calib_path = os.path.join(rospkg.RosPack().get_path('snap_cam'), folder, 'cameraParameters.yaml')
         if not os.path.exists(os.path.dirname(calib_path)):
