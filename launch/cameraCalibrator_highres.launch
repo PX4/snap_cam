@@ -1,0 +1,8 @@
+<launch>
+    <arg name="image_topic" default="snap_cam_highres_publisher/image" />
+
+    <node pkg="snap_cam" name="camera_calibrator" type="CameraCalibrator.py" required="true" output="screen">
+        <param name="image_topic"   value="$(arg image_topic)" />
+    </node>
+
+</launch>

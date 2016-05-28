@@ -7,16 +7,16 @@
     <param name="camera_type" value="highres"/>
 
     <!--
-    highres:      0: QVGASize (320,240)
-                  1: VGASize (640,480)
-                  2: HDSize (1280,720)
-                  3: FHDSize (1920,1080)
-                  4: 4KSize (4096,2160) -->
-    <param name="camera_resolution" value="4"/>
+    highres:      0: QVGASize (320,240) = "QVGA"
+                  1: VGASize (640,480) = "VGA"
+                  2: HDSize (1280,720) = "720p"
+                  3: FHDSize (1920,1080) = "1080p"
+                  4: 4KSize (4096,2160) = "4k" -->
+    <param name="camera_resolution" value="4k"/>
 
     <!--
     highres: 0: 15 1: 24 2: 30 3: 60 4: 90 6: 120 -->
-    <param name="camera_fps_idx" value="0"/>
+    <param name="camera_fps_idx" value="3"/>
 
     <param name="topic_name" value="image"/>
   </node>

@@ -28,20 +28,40 @@
 
 image_transport::Publisher image_pub;
 
+void rot90(cv::Mat &matImage, int rotflag)
+{
+        //1=CW, 2=CCW, 3=180
+        if (rotflag == 1){
+                cv::transpose(matImage, matImage);
+                cv::flip(matImage, matImage,1); //transpose+flip(1)=CW
+        } 
+        else if (rotflag == 2) {
+                cv::transpose(matImage, matImage);
+                cv::flip(matImage, matImage,0); //transpose+flip(0)=CCW
+        } 
+        else if (rotflag ==3){
+                cv::flip(matImage, matImage,-1); //flip(-1)=180
+        } 
+        else if (rotflag != 0){ //if not 0,1,2,3:
+                cout << "Unknown rotation flag(" << rotflag << ")" << endl;
+        }
+}
 
 void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 {
 	// convert OpenCV image to ROS message
+        cv::Mat img_ = img;
+        rot90(img_,2);
 	cv_bridge::CvImage cvi;
 	cvi.header.stamp = ros::Time::now();
 	cvi.header.frame_id = "image";
-	cvi.image = img;
+	cvi.image = img_;
 
 	if (img.channels() == 1) { // optical flow
 		cvi.encoding = "mono8";
 
 	} else { // highres
-		cvi.encoding = "bgr8";
+		cvi.encoding = "rgb8";
 	}
 
 	sensor_msgs::Image im;
