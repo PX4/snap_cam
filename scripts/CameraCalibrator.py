@@ -1,7 +1,7 @@
 #!/usr/bin/python
 from __future__ import print_function, division
 import os
-import shutil
+#import shutil
 import yaml
 from cv_bridge import CvBridge
 import numpy as np
@@ -185,7 +185,7 @@ class CameraCalibrator(QMainWindow):
 
         self.recording = False
 
-        min_frames = 1  # todo
+        min_frames = 10  # todo
         if len(self.corners) < min_frames:
             QMessageBox.critical(self, "Not enough images",
                                         """You have not recorded enough images of the checkerboard. Please record at least {} images to calibrate""".format(min_frames),
@@ -214,16 +214,20 @@ class CameraCalibrator(QMainWindow):
                 return
 
         calib = dict()
-	folder = 'calib/4k' #default 4k resolution
-	if self.image.shape[1] < 1081: # imx214 90 deg rotated
-            folder = 'calib/1080p' # 1080p resolution
-	if self.image.shape[1] < 721: 
-            folder = 'calib/VGA' # 720p resolution
-	if self.image.shape[1] < 641: # ? hire or optflow
-            folder = 'calib/VGA' # VGA resolution
-        if self.image.shape[1] < 321: 
-            folder = 'calib/QVGA' # QVGA resolution
-
+        folder = 'calib/highres/4k' #default 4k resolution
+        if self.image.shape[0] + self.image.shape[1] < 3001: # imx214 90 deg rotated or not
+            folder = 'calib/highres/1080p' # 1080p resolution
+        if self.image.shape[0] + self.image.shape[1] < 2001: 
+            folder = 'calib/highres/720p' # 720p resolution
+        if self.image.shape[0] + self.image.shape[1] < 1121: # ? hires or optflow
+            folder = 'calib/optflow/VGA' # optflow VGA resolution
+        if self.image.shape[1] < self.image.shape[0]: # rotated 90
+            folder = 'calib/highres/VGA' # VGA resolution 
+        if self.image.shape[0] + self.image.shape[1] < 561: 
+            folder = 'calib/optflow/QVGA' # optflow QVGA resolution
+        if self.image.shape[1] < self.image.shape[0]: # rotated 90
+            folder = 'calib/highres/QVGA' # QVGA resolution 
+        
         calib_path = os.path.join(rospkg.RosPack().get_path('snap_cam'), folder, 'cameraParameters.yaml')
         if not os.path.exists(os.path.dirname(calib_path)):
             rospy.loginfo('Directory does not exist yet. Creating directory.')

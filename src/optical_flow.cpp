@@ -116,18 +116,18 @@ int main(int argc, char **argv)
 	//check which calibration file to take if calibration_path != "" assume it's the correct one
 	if (cl_params.calibration_path == "" && cl_params.res == "VGA") { //default
 #ifdef CATKIN_BUILD
-		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/VGA/cameraParameters.yaml";
+		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/optflow/VGA/cameraParameters.yaml";
 #else
-		cl_params.calibration_path = "../calib/VGA/cameraParameters.yaml";
+		cl_params.calibration_path = "../calib/optflow/VGA/cameraParameters.yaml";
 		INFO("Using VGA/cameraParameters.yaml for calibration");
 #endif
 	}
 
 	if (cl_params.calibration_path == "" && cl_params.res == "QVGA") { //default for QVGA
 #ifdef CATKIN_BUILD
-		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/QVGA/cameraParameters.yaml";
+		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/optflow/QVGA/cameraParameters.yaml";
 #else
-		cl_params.calibration_path = "../calib/QVGA/cameraParameters.yaml";
+		cl_params.calibration_path = "../calib/optflow/QVGA/cameraParameters.yaml";
 		INFO("sing QVGA/cameraParameters.yaml for calibration");
 #endif
 	}
