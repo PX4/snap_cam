@@ -101,21 +101,24 @@ For this you must build this package with catkin as described above and launch t
 ```sh
 roslaunch snap_cam optflow.launch
 ```
-or for hires camera
+or for highres camera
 ```sh
 roslaunch snap_cam highres.launch
 ```
 
 Clone and build this package in a catkin workspace on your computer.
-On your computer launch the calibration app:
+Add any missing dependencies such as:
 ```sh
 sudo apt-get install python-pyside
+```
+On your computer launch the calibration app:
+```sh
 export ROS_MASTER_URI=http://<snapdragon IP>:11311
 roslaunch snap_cam cameraCalibrator.launch
 ```
-or for hires camera
+or for highres camera
 ```sh
-roslaunch snap_cam cameraCalibrator_highres.launch
+roslaunch snap_cam cameraCalibratorHighres.launch
 ```
 
 NOTE:
@@ -125,10 +128,11 @@ If your image topics are empty, make sure to set the environment variable ROS_IP
 Set the appropriate checkerboard parameters in the app.
 Start recording by clicking on the button and record your checkerboard from sufficiently varying angles.
 Once done, click stop recording.
-The camera calibration will be written to `pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml`.
+The camera calibration will be written to `pathToYourCatkinWs/src/snap_cam/calib/pathToCamera/pathToResolution/cameraParameters.yaml`.
+where `pathToCamera` is `optflow` or `highres` and `pathToResolution` can be one of the `QVGA, VGA, 720p, 1080p, 4k`, depending your choice in the optflow.lauch or highres.launch.
 Push this file to your snapdragon.
 ```sh
-adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnapCam/calib/cameraParameters.yaml
+adb push /pathToYourCatkinWs/src/snap_cam/calib/pathToCamera/pathToResolution/cameraParameters.yaml pathToSnapCam/calib/pathToCamera/pathToResolution/cameraParameters.yaml
 ```
 
 ## Running the optical flow
