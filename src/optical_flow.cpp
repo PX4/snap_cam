@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 		cl_params.calibration_path = ros::package::getPath("snap_cam") + "/calib/QVGA/cameraParameters.yaml";
 #else
 		cl_params.calibration_path = "../calib/QVGA/cameraParameters.yaml";
-		INFO("sing QVGA/cameraParameters.yaml for calibration");
+		INFO("Using QVGA/cameraParameters.yaml for calibration");
 #endif
 	}
 
@@ -492,7 +492,9 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 				sendOptFlowMessage();
 			}
 
-		} else {ERROR("No valid measurements");}
+		} else {
+			WARN("No valid measurements");
+		}
 	}
 
 	for (int i = 0; i < updateVector.size(); i++) {
