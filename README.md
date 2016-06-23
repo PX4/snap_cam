@@ -59,6 +59,10 @@ To install OpenCV, [download](http://px4-tools.s3.amazonaws.com/opencv3_20160222
 adb push /path/to/file /home/linaro/
 dpkg -i opencv3_20160222-1_armhf.deb
 ```
+or use
+```sh
+sudo apt-get install ros-indigo-opencv3
+```
 
 #### create a catkin workspace
 Next, create a catkin workspace (e.g. in /home/linaro)
@@ -98,7 +102,10 @@ For this you must build this package with catkin as described above and launch t
 roslaunch snap_cam optflow.launch
 ```
 
-Clone and build this package in a catkin workspace on your computer.
+Clone and build this package in a catkin workspace on your computer. Add any missing dependencies:
+```sh
+sudo apt-get install python-pyside
+```
 On your computer launch the calibration app:
 ```sh
 export ROS_MASTER_URI=http://<snapdragon IP>:11311
