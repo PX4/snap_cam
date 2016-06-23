@@ -52,7 +52,7 @@ Others
 sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev
 ```
 
-To install OpenCV, download and push the latest `.deb` package to the Snapdragon and install it using
+To install OpenCV, [download](http://px4-tools.s3.amazonaws.com/opencv3_20160222-1_armhf.deb) and push the `.deb` package to the Snapdragon and install it using
 
 <div class="host-code"></div>
 ```sh
