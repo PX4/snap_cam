@@ -4,7 +4,7 @@ The package can be used with ROS by building with catkin or, alternatively, with
 
 The package is to be compiled on the Snapdragon board. Two variants are provided: Building with ROS, where all features are available, and building with pure CMake, where only ROS-independent applications are compiled (including the optical flow node).
 
-## Building with pure CMake
+## Setup
 For the pure CMake install variant, clone the required repositories in a directory, e.g. `~/src`:
 ```sh
 cd ~/src
@@ -19,7 +19,22 @@ git submodule init
 git submodule update --recursive
 ```
 
-Compile with:
+Install the dependencies
+```sh
+sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev libboost-dev cmake
+```
+
+To install OpenCV, [download](http://px4-tools.s3.amazonaws.com/opencv3_20160222-1_armhf.deb) and push the `.deb` package to the Snapdragon and install it using
+
+<div class="host-code"></div>
+```sh
+adb push /path/to/file /home/linaro/
+dpkg -i opencv3_20160222-1_armhf.deb
+```
+or when using with ROS ```ros-indigo-opencv3``` can be installed.
+
+
+## Building with pure CMake
 ```sh
 mkdir -p build
 cd build
@@ -45,23 +60,6 @@ sudo chown -R linaro:linaro /home/linaro
 ROS dependencies
 ```sh
 sudo apt-get install ros-indigo-mavlink ros-indigo-tf ros-indigo-orocos-toolchain ros-indigo-angles ros-indigo-tf2 ros-indigo-tf2-ros
-```
-
-Others
-```sh
-sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev libboost-dev
-```
-
-To install OpenCV, [download](http://px4-tools.s3.amazonaws.com/opencv3_20160222-1_armhf.deb) and push the `.deb` package to the Snapdragon and install it using
-
-<div class="host-code"></div>
-```sh
-adb push /path/to/file /home/linaro/
-dpkg -i opencv3_20160222-1_armhf.deb
-```
-or use
-```sh
-sudo apt-get install ros-indigo-opencv3
 ```
 
 #### create a catkin workspace
