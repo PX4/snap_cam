@@ -49,7 +49,7 @@ sudo apt-get install ros-indigo-mavlink ros-indigo-tf ros-indigo-orocos-toolchai
 
 Others
 ```sh
-sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev
+sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev libboost-dev
 ```
 
 To install OpenCV, [download](http://px4-tools.s3.amazonaws.com/opencv3_20160222-1_armhf.deb) and push the `.deb` package to the Snapdragon and install it using
