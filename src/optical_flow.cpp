@@ -364,6 +364,8 @@ void sendOptFlowMessage()
 		sensor_msg.integrated_zgyro = zgyro_int;
 
 		//send optical flow mavlink message to px4
+		// TODO-JYW: TESTING-TESTING
+		ERROR("sending OPTICAL_FLOW_RAD message.");
 		send_mavlink_message(MAVLINK_MSG_ID_OPTICAL_FLOW_RAD, &sensor_msg, 200);
 	}
 }
@@ -513,6 +515,10 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 
 void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 {
+  // TODO-JYW: TESTING-TESTING:
+  // TODO-JYW: LEFT-OFF: Run stand alone sample program to verify the ability
+  // to receive video frames.  Locate the radar demo code?
+  ROS_ERROR("image callback entered.");
 	calcOptFlow(img, time_stamp);
 }
 
