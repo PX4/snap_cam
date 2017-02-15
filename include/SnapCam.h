@@ -98,8 +98,8 @@ enum OutputFormatType {
 };
 
 enum CamFunction {
-  CAM_FUNC_UNKNOWN = -1,
-  CAM_FUNC_HIRES = 0,
+	CAM_FUNC_UNKNOWN = -1,
+	CAM_FUNC_HIRES = 0,
 	CAM_FUNC_OPTIC_FLOW = 1,
 	CAM_FUNC_RIGHT_SENSOR = 2,
 	CAM_FUNC_STEREO = 3,
@@ -117,8 +117,8 @@ enum AppLoglevel {
 *  Helper class to store all parameter settings
 */
 struct CamConfig {
-  int32_t cameraId;
-  bool dumpFrames;
+	int32_t cameraId;
+	bool dumpFrames;
 	bool infoMode;
 	bool testSnapshot;
 	bool testVideo;

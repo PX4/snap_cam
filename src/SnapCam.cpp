@@ -78,50 +78,45 @@ SnapCam::SnapCam(std::string config_str)
 
 int SnapCam::findCamera(CamConfig cfg, int32_t &camera_id)
 {
-  int num_cams = camera::getNumberOfCameras();
+	int num_cams = camera::getNumberOfCameras();
 
-  if (num_cams < 1)
-  {
-    printf("No cameras detected. Exiting.\n");
-    return -1;
-  }
+	if (num_cams < 1) {
+		printf("No cameras detected. Exiting.\n");
+		return -1;
+	}
 
-  bool found = false;
+	bool found = false;
 
-  for (int i = 0; i < num_cams; ++i)
-  {
-    camera::CameraInfo info;
-    getCameraInfo(i, info);
-    if (info.func == static_cast<int>(cfg.func))
-    {
-      camera_id = i;
-      found = true;
-    }
-  }
+	for (int i = 0; i < num_cams; ++i) {
+		camera::CameraInfo info;
+		getCameraInfo(i, info);
+		if (info.func == static_cast<int>(cfg.func)) {
+			camera_id = i;
+			found = true;
+		}
+	}
 
-  if (!found)
-  {
-    printf("Could not find camera of type %d. Exiting", cfg.func);
-    return -1;
-  }
+	if (!found) {
+		printf("Could not find camera of type %d. Exiting", cfg.func);
+		return -1;
+	}
 
-  printf("Camera of type %d has ID = %d\n", cfg.func, camera_id);
+	printf("Camera of type %d has ID = %d\n", cfg.func, camera_id);
 
-  return 0;
+	return 0;
 }
 
 int SnapCam::initialize(CamConfig cfg)
 {
-  int rc;
-  int32_t cameraId;
-  rc = SnapCam::findCamera(cfg, cameraId);
+	int rc;
+	int32_t cameraId;
+	rc = SnapCam::findCamera(cfg, cameraId);
 
-  if (rc != 0)
-  {
-    printf("Cannot find camera Id for type: %d", cfg.func);
-    return rc;
-  }
-  cfg.cameraId = cameraId;
+	if (rc != 0) {
+		printf("Cannot find camera Id for type: %d", cfg.func);
+		return rc;
+	}
+	cfg.cameraId = cameraId;
 
 	rc = ICameraDevice::createInstance(cfg.cameraId, &camera_);
 
