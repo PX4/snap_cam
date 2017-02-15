@@ -324,9 +324,9 @@ void sendOptFlowMessage()
 
 		GyroTimestamped latest_gyro;
 		if (!rb_imu.peak_head(&latest_gyro)) {
-      ERROR("IMU buffer is empty");
-      return;
-    }
+			ERROR("IMU buffer is empty");
+			return;
+		}
 
 		if (integration_start_time > latest_gyro.time_usec) {
 			WARN("The integration start time is %lld us ahead of the lastest IMU", integration_start_time - latest_gyro.time_usec);
@@ -372,7 +372,7 @@ void sendOptFlowMessage()
 		sensor_msg.integrated_ygyro = ygyro_int;
 		sensor_msg.integrated_zgyro = zgyro_int;
 
-    //send optical flow mavlink message to px4
+		//send optical flow mavlink message to px4
 		send_mavlink_message(MAVLINK_MSG_ID_OPTICAL_FLOW_RAD, &sensor_msg, 200);
 	}
 }
@@ -582,7 +582,7 @@ void handle_message_highres_imu(mavlink_message_t *msg)
 	gyro.xgyro      = highres_imu.xgyro;
 	gyro.ygyro      = highres_imu.ygyro;
 	gyro.zgyro      = highres_imu.zgyro;
-  gyro.time_usec  = highres_imu.time_usec;
+	gyro.time_usec  = highres_imu.time_usec;
 
 	if (rb_imu.force(&gyro)) {
 		ERROR("IMU buffer is overflowing!");
@@ -621,34 +621,31 @@ bool read_mavlink_messages(int &sock, struct sockaddr_in &theirAddr)
 
 int calc_imu_time_offset(void)
 {
-  int64_t dsptimeNsec;
-  int64_t appstimeInNsec;
-  uint64_t timeNSecMonotonic;
-  struct timespec t;
-  static const char qdspTimerTickPath[] = "/sys/kernel/boot_adsp/qdsp_qtimer";
-  char qdspTicksStr[20] = "";
-  static const double clockFreqUsec = 1 / 19.2;
+	int64_t dsptimeNsec;
+	int64_t appstimeInNsec;
+	uint64_t timeNSecMonotonic;
+	struct timespec t;
+	static const char qdspTimerTickPath[] = "/sys/kernel/boot_adsp/qdsp_qtimer";
+	char qdspTicksStr[20] = "";
+	static const double clockFreqUsec = 1 / 19.2;
 
-  FILE * qdspClockfp = fopen(qdspTimerTickPath, "r");
-  if (qdspClockfp != NULL)
-  {
-    fread(qdspTicksStr, 16, 1, qdspClockfp);
-    uint64_t qdspTicks = strtoull(qdspTicksStr, 0, 16);
-    fclose(qdspClockfp);
-    dsptimeNsec = (int64_t)(qdspTicks * clockFreqUsec * 1e3);
-  }
-  else
-  {
-    printf("error: unable to read the Q6 DSP time clock.\n");
-    return -1;
-  }
+	FILE * qdspClockfp = fopen(qdspTimerTickPath, "r");
+	if (qdspClockfp != NULL) {
+		fread(qdspTicksStr, 16, 1, qdspClockfp);
+		uint64_t qdspTicks = strtoull(qdspTicksStr, 0, 16);
+		fclose(qdspClockfp);
+		dsptimeNsec = (int64_t) (qdspTicks * clockFreqUsec * 1e3);
+	} else {
+		printf("error: unable to read the Q6 DSP time clock.\n");
+		return -1;
+	}
 
-  clock_gettime (CLOCK_MONOTONIC, &t);
-  timeNSecMonotonic = (uint64_t)(t.tv_sec) * 1000000000ULL + t.tv_nsec;
-  appstimeInNsec = (int64_t)timeNSecMonotonic;
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	timeNSecMonotonic = (uint64_t) (t.tv_sec) * 1000000000ULL + t.tv_nsec;
+	appstimeInNsec = (int64_t) timeNSecMonotonic;
 
-  imu_time_offset_usecs = (appstimeInNsec - dsptimeNsec) / 1000;
-  printf("IMU time offset is: %lld\n", imu_time_offset_usecs);
+	imu_time_offset_usecs = (appstimeInNsec - dsptimeNsec) / 1000;
+	printf("IMU time offset is: %lld\n", imu_time_offset_usecs);
 
-  return 0;
+	return 0;
 }
