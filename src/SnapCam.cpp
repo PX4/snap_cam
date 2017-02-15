@@ -76,10 +76,54 @@ SnapCam::SnapCam(std::string config_str)
 	initialize(parseCommandline(args.size(), &args[0]));
 }
 
+int SnapCam::findCamera(CamConfig cfg, int32_t &camera_id)
+{
+  int num_cams = camera::getNumberOfCameras();
+
+  if (num_cams < 1)
+  {
+    printf("No cameras detected. Exiting.\n");
+    return -1;
+  }
+
+  bool found = false;
+
+  for (int i = 0; i < num_cams; ++i)
+  {
+    camera::CameraInfo info;
+    getCameraInfo(i, info);
+    if (info.func == static_cast<int>(cfg.func))
+    {
+      camera_id = i;
+      found = true;
+    }
+  }
+
+  if (!found)
+  {
+    printf("Could not find camera of type %d. Exiting", cfg.func);
+    return -1;
+  }
+
+  printf("Camera of type %d has ID = %d\n", cfg.func, camera_id);
+
+  return 0;
+}
+
 int SnapCam::initialize(CamConfig cfg)
 {
-	int rc;
-	rc = ICameraDevice::createInstance(cfg.func, &camera_);
+  int rc;
+  int32_t cameraId;
+  rc = SnapCam::findCamera(cfg, cameraId);
+
+  if (rc != 0)
+  {
+    printf("Cannot find camera Id for type: %d", cfg.func);
+    return rc;
+  }
+  cfg.cameraId = cameraId;
+
+	rc = ICameraDevice::createInstance(cfg.cameraId, &camera_);
 
 	if (rc != 0) {
 		printf("Could not open camera %d\n", cfg.func);
