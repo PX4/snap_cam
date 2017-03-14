@@ -26,7 +26,7 @@
 #include <ros/package.h>
 #endif
 
-#include "trackFeatures.h"
+#include "flow_opencv.hpp"
 #include "calib_yaml_interface.h"
 
 #include <mavlink/v1.0/mavlink_types.h>
@@ -46,6 +46,7 @@
 #define UDP_REMOTE_PORT_DEFAULT 14557
 #define UDP_REMOTE_SEND_PORT_DEFAULT 14556
 #define BUFFER_LENGTH 2041 // minimum buffer size that can be used with qnx (I don't know why)
+#define OPTICAL_FLOW_OUTPUT_RATE 20
 struct sockaddr_in _srcaddr;
 
 // command line parameters
@@ -85,16 +86,13 @@ int calc_imu_time_offset();
 //decalare variables
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
 static const uint8_t mavlink_message_crcs[256] = MAVLINK_MESSAGE_CRCS;
-std::vector<cv::Point2f> features_current;
-std::vector<int> updateVector;
-cv::Mat_<cv::Point2f> out_features_previous;
 
-uint64_t img_timestamp_prev = 0;
 mavlink_highres_imu_t last_highres_imu;
 
 CameraParameters cameraParams = {};
 
 int64_t imu_time_offset_usecs = 0;
+OpticalFlowOpenCV *_optical_flow;
 
 int sock;
 struct sockaddr_in myAddr;
@@ -220,7 +218,13 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	updateVector.resize(cl_params.num_features, 2);
+	//initialize optical flow
+	_optical_flow = new OpticalFlowOpenCV(cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[1][1],
+			OPTICAL_FLOW_OUTPUT_RATE, cfg.pSize.width, cfg.pSize.height);
+	_optical_flow->setCameraMatrix(cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[1][1],
+			cameraParams.CameraMatrix[0][2], cameraParams.CameraMatrix[1][2]);
+	_optical_flow->setCameraDistortion(cameraParams.RadialDistortion[0], cameraParams.RadialDistortion[1],
+			cameraParams.RadialDistortion[2]);
 
 	// calculate the offset of the AppsProc time from the aDSP time, for
 	// use later in converting the IMU timestamp from the aDSP to
@@ -379,145 +383,36 @@ void sendOptFlowMessage()
 
 void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 {
-	if (!img_timestamp_prev) {
-		img_timestamp_prev = img_timestamp;
-		return;
-	}
 
-	std::vector<cv::Point2f> useless;
-	int meancount = 0;
+	float flow_x_ang = 0.0f;
+  float flow_y_ang = 0.0f;
+	static int dt_us;
 
-	double pixel_flow_x_mean = 0.0;
-	double pixel_flow_y_mean = 0.0;
-	double pixel_flow_x_integral = 0.0;
-	double pixel_flow_y_integral = 0.0;
-	double pixel_flow_x_stddev = 0.0;
-	double pixel_flow_y_stddev = 0.0;
+	int flow_quality = _optical_flow->calcFlow(Image.data, img_timestamp, dt_us, flow_x_ang, flow_y_ang);
 
-	trackFeatures(Image, Image, features_current, useless, updateVector, 0);
+	if (flow_quality >= 0) {
 
-	cv::Mat_<float> cam_matrix(3, 3);
-	cam_matrix <<   cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[0][1], cameraParams.CameraMatrix[0][2],
-		   cameraParams.CameraMatrix[1][0], cameraParams.CameraMatrix[1][1], cameraParams.CameraMatrix[1][2],
-		   cameraParams.CameraMatrix[2][0], cameraParams.CameraMatrix[2][1], cameraParams.CameraMatrix[2][2];
-	cv::Mat_<float> distortion(1, 4);
-	distortion <<   cameraParams.RadialDistortion[0], cameraParams.RadialDistortion[1], 0, 0,
-		   cameraParams.RadialDistortion[2];
+		mavlink_optical_flow_rad_t sensor_msg;
 
-	int npoints = updateVector.size();
-	cv::Mat_<cv::Point2f> out_features_current(1, npoints);
+		sensor_msg.time_usec = img_timestamp;
+		sensor_msg.sensor_id = 0; //?
+		sensor_msg.integration_time_us = dt_us;
+		sensor_msg.integrated_x = flow_x_ang;
+		sensor_msg.integrated_y = flow_y_ang;
+		sensor_msg.integrated_xgyro = 0.0;  // will be filled later
+		sensor_msg.integrated_ygyro = 0.0;  //  will be filled later
+		sensor_msg.integrated_zgyro = 0.0;  //  will be filled later
+		sensor_msg.temperature = 0.0;
+		sensor_msg.quality = flow_quality;
+		sensor_msg.time_delta_distance_us = 0.0; //?
+		sensor_msg.distance = -1.0; // mark as invalid
 
-	cv::undistortPoints(features_current, out_features_current, cam_matrix, distortion);
-
-	// cv::undistortPoints returns normalized coordinates... -> convert
-	for (int i = 0; i < npoints; i++) {
-		out_features_current(i).x = out_features_current(i).x * cameraParams.CameraMatrix[0][0] +
-					    cameraParams.CameraMatrix[0][2];
-		out_features_current(i).y = out_features_current(i).y * cameraParams.CameraMatrix[1][1] +
-					    cameraParams.CameraMatrix[1][2];
-	}
-
-	if (!out_features_current.empty() && !out_features_previous.empty()) {
-		// compute the mean flow
-		for (int i = 0; i < updateVector.size(); i++) {
-			if (updateVector[i] == 1) {
-				pixel_flow_x_mean += out_features_current(i).x - out_features_previous(i).x;
-				pixel_flow_y_mean += out_features_current(i).y - out_features_previous(i).y;
-				meancount++;
-			}
+		if (rb_flow.force(&sensor_msg)) {
+			WARN("Flow buffer is overflowing %d", rb_flow.space());
 		}
 
-		if (meancount) {
-			pixel_flow_x_mean /= meancount;
-			pixel_flow_y_mean /= meancount;
-
-			// compute the flow variance
-			for (int i = 0; i < updateVector.size(); i++) {
-				if (updateVector[i] == 1) {
-					pixel_flow_x_stddev += (out_features_current(i).x - out_features_previous(i).x - pixel_flow_x_mean) *
-							       (out_features_current(i).x - out_features_previous(i).x - pixel_flow_x_mean);
-					pixel_flow_y_stddev += (out_features_current(i).y - out_features_previous(i).y - pixel_flow_y_mean) *
-							       (out_features_current(i).y - out_features_previous(i).y - pixel_flow_y_mean);
-				}
-			}
-
-			pixel_flow_x_stddev /= meancount;
-			pixel_flow_y_stddev /= meancount;
-
-			// convert to std deviation
-			pixel_flow_x_stddev = sqrt(pixel_flow_x_stddev);
-			pixel_flow_y_stddev = sqrt(pixel_flow_y_stddev);
-
-			// re-compute the mean flow with only the 95% consenting features
-			meancount = 0;
-
-			for (int i = 0; i < updateVector.size(); i++) {
-				if (updateVector[i] == 1) {
-					double this_flow_x = out_features_current(i).x - out_features_previous(i).x;
-					double this_flow_y = out_features_current(i).y - out_features_previous(i).y;
-
-					if (abs(this_flow_x - pixel_flow_x_mean) < 2 * pixel_flow_x_stddev
-					    && abs(this_flow_y - pixel_flow_y_mean) < 2 * pixel_flow_y_stddev) {
-						pixel_flow_x_integral += out_features_current(i).x - out_features_previous(i).x;
-						pixel_flow_y_integral += out_features_current(i).y - out_features_previous(i).y;
-						meancount++;
-
-					} else {
-						updateVector[i] = 0;
-					}
-				}
-
-			}
-
-			if (meancount) {
-				pixel_flow_x_integral /= meancount;
-				pixel_flow_y_integral /= meancount;
-
-				double flow_quality = 255.0 * meancount / updateVector.size();
-				uint32_t delta_time = img_timestamp - img_timestamp_prev;
-
-				double flow_x_ang = atan2(pixel_flow_x_integral, cameraParams.FocalLength[0]);
-				double flow_y_ang = atan2(pixel_flow_y_integral, cameraParams.FocalLength[1]);
-
-				mavlink_optical_flow_rad_t sensor_msg;
-
-				sensor_msg.time_usec = img_timestamp;
-				sensor_msg.sensor_id = 0; //?
-				sensor_msg.integration_time_us = delta_time;
-				sensor_msg.integrated_x = flow_x_ang;
-				sensor_msg.integrated_y = flow_y_ang;
-				sensor_msg.integrated_xgyro = 0.0;  // will be filled later
-				sensor_msg.integrated_ygyro = 0.0;  //  will be filled later
-				sensor_msg.integrated_zgyro = 0.0;  //  will be filled later
-				sensor_msg.temperature = 0.0;
-				sensor_msg.quality = flow_quality;
-				sensor_msg.time_delta_distance_us = 0.0; //?
-				sensor_msg.distance = -1.0; // mark as invalid
-
-				if (rb_flow.force(&sensor_msg)) {
-					WARN("Flow buffer is overflowing %d", rb_flow.space());
-				}
-
-				sendOptFlowMessage();
-			}
-
-		} else {
-			WARN("No valid measurements");
-		}
+		sendOptFlowMessage();
 	}
-
-	for (int i = 0; i < updateVector.size(); i++) {
-		if (updateVector[i] == 2) {
-			updateVector[i] = 1;
-		}
-
-		if (updateVector[i] == 0) {
-			updateVector[i] = 2;
-		}
-	}
-
-	out_features_previous = out_features_current;
-	img_timestamp_prev = img_timestamp;
 }
 
 void imageCallback(const cv::Mat &img, uint64_t time_stamp)

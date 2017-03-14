@@ -22,7 +22,6 @@ if(CATKIN_BUILD)
     find_package(catkin REQUIRED COMPONENTS
       cv_bridge
       image_transport
-      klt_feature_tracker
       roscpp
       rospy
       sensor_msgs
@@ -36,19 +35,17 @@ if(CATKIN_BUILD)
     #  CATKIN_DEPENDS catkin_lib
       DEPENDS yaml-cpp
     )
-else()
-    # if not building with catkin, we have to find klt_feature_tracker ourselves
-    # assume that it is in the same directory as this package
-    add_subdirectory( ../klt_feature_tracker klt_feature_tracker)
-    include_directories( ../klt_feature_tracker/include)
-    include_directories(src) # for mavlink
-    set(klt_feature_tracker_LIBS "klt_feature_tracker") # Not needed with catkin
 endif()
+
+add_subdirectory( src/OpticalFlow OpticalFlow )
+set( OpticalFlow_LIBS "OpticalFlow" )
 
 include_directories(
 	include
 	${catkin_INCLUDE_DIRS}
 	${OpenCV_INCLUDE_DIRS}
+	${OpticalFlow_INCLUDE_DIRS}
+	src # for mavlink
 	./libcamera/inc
 	./libcamera/src
 )
@@ -74,7 +71,7 @@ if (camera_LIBRARIES)
         ${catkin_LIBRARIES}
         ${OpenCV_LIBS}
         snap_cam
-        ${klt_feature_tracker_LIBS}
+        ${OpticalFlow_LIBS}
     )
 endif()
 
