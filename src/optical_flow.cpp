@@ -372,8 +372,8 @@ void sendOptFlowMessage()
 			zgyro_int += g.zgyro * dt;
 		} while (g.time_usec < sensor_msg.time_usec);
 
-		sensor_msg.integrated_xgyro = xgyro_int;
-		sensor_msg.integrated_ygyro = ygyro_int;
+		sensor_msg.integrated_xgyro = - ygyro_int; //swap directions to match PX4Flow and SENS_FLOW_ROT 6 (270 degrees)
+		sensor_msg.integrated_ygyro = xgyro_int; //swap directions to match PX4Flow and SENS_FLOW_ROT 6 (270 degrees)
 		sensor_msg.integrated_zgyro = zgyro_int;
 
 		//send optical flow mavlink message to px4
@@ -397,8 +397,8 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 		sensor_msg.time_usec = img_timestamp;
 		sensor_msg.sensor_id = 0; //?
 		sensor_msg.integration_time_us = dt_us;
-		sensor_msg.integrated_x = flow_x_ang;
-		sensor_msg.integrated_y = flow_y_ang;
+		sensor_msg.integrated_x = - flow_y_ang; //swap directions to match PX4Flow and SENS_FLOW_ROT 6 (270 degrees)
+		sensor_msg.integrated_y = flow_x_ang; //swap directions to match PX4Flow and SENS_FLOW_ROT 6 (270 degrees)
 		sensor_msg.integrated_xgyro = 0.0;  // will be filled later
 		sensor_msg.integrated_ygyro = 0.0;  //  will be filled later
 		sensor_msg.integrated_zgyro = 0.0;  //  will be filled later
