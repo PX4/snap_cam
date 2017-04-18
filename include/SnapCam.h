@@ -97,10 +97,10 @@ enum OutputFormatType {
 	JPEG_FORMAT
 };
 
-// TODO HIRES and OPTIC_FLOW are switched?
 enum CamFunction {
-	CAM_FUNC_OPTIC_FLOW = 0,
-	CAM_FUNC_HIRES = 1,
+	CAM_FUNC_UNKNOWN = -1,
+	CAM_FUNC_HIRES = 0,
+	CAM_FUNC_OPTIC_FLOW = 1,
 	CAM_FUNC_RIGHT_SENSOR = 2,
 	CAM_FUNC_STEREO = 3,
 };
@@ -117,6 +117,7 @@ enum AppLoglevel {
 *  Helper class to store all parameter settings
 */
 struct CamConfig {
+	int32_t cameraId;
 	bool dumpFrames;
 	bool infoMode;
 	bool testSnapshot;
@@ -189,6 +190,7 @@ private:
 	int printCapabilities();
 	int setParameters();
 	int setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx);
+	int findCamera(CamConfig cfg, int32_t &camera_id);
 
 	CallbackFunction cb_;
 };

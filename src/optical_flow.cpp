@@ -80,6 +80,7 @@ int parseCommandline(int argc, char *argv[], Params &cl_params);
 void handle_message(mavlink_message_t *msg);
 void handle_message_highres_imu(mavlink_message_t *msg);
 bool read_mavlink_messages(int &sock, struct sockaddr_in &theirAddr);
+int calc_imu_time_offset();
 
 //decalare variables
 static const uint8_t mavlink_message_lengths[256] = MAVLINK_MESSAGE_LENGTHS;
@@ -92,6 +93,8 @@ uint64_t img_timestamp_prev = 0;
 mavlink_highres_imu_t last_highres_imu;
 
 CameraParameters cameraParams = {};
+
+int64_t imu_time_offset_usecs = 0;
 
 int sock;
 struct sockaddr_in myAddr;
@@ -219,6 +222,15 @@ int main(int argc, char **argv)
 
 	updateVector.resize(cl_params.num_features, 2);
 
+	// calculate the offset of the AppsProc time from the aDSP time, for
+	// use later in converting the IMU timestamp from the aDSP to
+	// AppsProc time
+	if (calc_imu_time_offset() != 0)
+	{
+	  fprintf(stderr, "error calculating the aDSP/AppsProc time offset.");
+	  exit(EXIT_FAILURE);
+	}
+
 	// open the camera and set the callback to get the images
 	SnapCam cam(cfg);
 	cam.setListener(imageCallback);
@@ -311,18 +323,15 @@ void sendOptFlowMessage()
 		uint64_t integration_start_time = oldest_flow.time_usec - oldest_flow.integration_time_us;
 
 		GyroTimestamped latest_gyro;
-		rb_imu.peak_head(&latest_gyro);
+		if (!rb_imu.peak_head(&latest_gyro)) {
+			ERROR("IMU buffer is empty");
+			return;
+		}
 
 		if (integration_start_time > latest_gyro.time_usec) {
 			WARN("The integration start time is %lld us ahead of the lastest IMU", integration_start_time - latest_gyro.time_usec);
 			WARN("Oldest flow time %lld , latest gyro time %lld, integration_start_time %lld", oldest_flow.time_usec,
 			     latest_gyro.time_usec, integration_start_time);
-
-			if (rb_imu.empty()) {
-				ERROR("IMU buffer is empty");
-			}
-
-			return;
 		}
 
 		mavlink_optical_flow_rad_t sensor_msg;
@@ -608,4 +617,35 @@ bool read_mavlink_messages(int &sock, struct sockaddr_in &theirAddr)
 
 	memset(buf, 0, BUFFER_LENGTH);
 	return ret;
+}
+
+int calc_imu_time_offset(void)
+{
+	int64_t dsptimeNsec;
+	int64_t appstimeInNsec;
+	uint64_t timeNSecMonotonic;
+	struct timespec t;
+	static const char qdspTimerTickPath[] = "/sys/kernel/boot_adsp/qdsp_qtimer";
+	char qdspTicksStr[20] = "";
+	static const double clockFreqUsec = 1 / 19.2;
+
+	FILE * qdspClockfp = fopen(qdspTimerTickPath, "r");
+	if (qdspClockfp != NULL) {
+		fread(qdspTicksStr, 16, 1, qdspClockfp);
+		uint64_t qdspTicks = strtoull(qdspTicksStr, 0, 16);
+		fclose(qdspClockfp);
+		dsptimeNsec = (int64_t) (qdspTicks * clockFreqUsec * 1e3);
+	} else {
+		printf("error: unable to read the Q6 DSP time clock.\n");
+		return -1;
+	}
+
+	clock_gettime(CLOCK_MONOTONIC, &t);
+	timeNSecMonotonic = (uint64_t) (t.tv_sec) * 1000000000ULL + t.tv_nsec;
+	appstimeInNsec = (int64_t) timeNSecMonotonic;
+
+	imu_time_offset_usecs = (appstimeInNsec - dsptimeNsec) / 1000;
+	printf("IMU time offset is: %lld\n", imu_time_offset_usecs);
+
+	return 0;
 }
