@@ -257,7 +257,7 @@ void SnapCam::onVideoFrame(ICameraFrame *frame)
 	}
 
 	cb_(matFrame, time_stamp);
-    matFrame.deallocate();
+	matFrame.deallocate();
 }
 
 int SnapCam::printCapabilities()
