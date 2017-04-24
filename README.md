@@ -8,15 +8,13 @@ The package is to be compiled on the Snapdragon board. Two variants are provided
 For the pure CMake install variant, clone the required repositories in a directory, e.g. `~/src`:
 ```sh
 cd ~/src
-git clone https://github.com/ethz-ait/klt_feature_tracker.git
 git clone https://github.com/PX4/snap_cam.git
 ```
 
 Initialize the Mavlink submodule:
 ```sh
 cd snap_cam
-git submodule init
-git submodule update --recursive
+git submodule update --init --recursive
 ```
 
 Install the dependencies
@@ -77,7 +75,6 @@ Then clone the following four catkin packages and build
 cd src
 git clone https://github.com/ros-perception/vision_opencv
 git clone https://github.com/ros-perception/image_common
-git clone https://github.com/ethz-ait/klt_feature_tracker.git
 git clone https://github.com/PX4/snap_cam.git
 cd ..
 catkin_make
@@ -134,6 +131,8 @@ All arguments are optional.
 * `-f` specifies the camera frame-rate. The default is 15. Valid values are 15, 24, 30, 60, 90, 120.
 * `-n` specifies the number of features with which to compute the optical flow. The default is 10.
 * `-c` specifies the calibration file. The default is `../calib/<resolution>/cameraParameters.yaml`.
+* `-e` specifies the exposure. The default is 100. Valid values are between 0 and 500.
+* `-g` specifies the gain. The default is 50. Valid values are between 0 and 255.
 
 ### With ROS
 After sourcing your workspace with `source ~/catkin_ws/devel/setup.bash`, run:
