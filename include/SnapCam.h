@@ -160,7 +160,7 @@ public:
 
 	/* listener methods */
 	virtual void onError();
-	virtual void onPreviewFrame(ICameraFrame *frame);
+	virtual void onVideoFrame(ICameraFrame *frame);
 
 private:
 	int initialize(CamConfig cfg);
@@ -188,7 +188,6 @@ private:
 	std::string topic_name;
 
 	int printCapabilities();
-	int setParameters();
 	int setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx);
 	int findCamera(CamConfig cfg, int32_t &camera_id);
 

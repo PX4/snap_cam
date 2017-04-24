@@ -46,7 +46,9 @@
 #define UDP_REMOTE_PORT_DEFAULT 14557
 #define UDP_REMOTE_SEND_PORT_DEFAULT 14556
 #define BUFFER_LENGTH 2041 // minimum buffer size that can be used with qnx (I don't know why)
-#define OPTICAL_FLOW_OUTPUT_RATE 20
+#define OPTICAL_FLOW_OUTPUT_RATE 15
+#define IMAGE_CROP_WIDTH 128
+#define IMAGE_CROP_HEIGHT 128
 struct sockaddr_in _srcaddr;
 
 // command line parameters
@@ -58,6 +60,8 @@ struct Params {
 	std::string target_ip;
 	uint16_t udp_local_port;
 	uint16_t udp_remote_port;
+	uint8_t gain;
+	uint16_t exposure;
 } cl_params;
 
 struct GyroTimestamped {
@@ -94,6 +98,9 @@ CameraParameters cameraParams = {};
 int64_t imu_time_offset_usecs = 0;
 OpticalFlowOpenCV *_optical_flow;
 
+int image_width;
+int image_height;
+
 int sock;
 struct sockaddr_in myAddr;
 struct sockaddr_in theirAddr;
@@ -111,6 +118,8 @@ int main(int argc, char **argv)
 	cl_params.target_ip = "127.0.0.1";
 	cl_params.udp_local_port = UDP_LOCAL_PORT_DEFAULT;
 	cl_params.udp_remote_port = UDP_REMOTE_PORT_DEFAULT;
+	cl_params.exposure = 100; //default
+	cl_params.gain = 50; //default
 
 	parseCommandline(argc, argv, cl_params);
 
@@ -148,6 +157,12 @@ int main(int argc, char **argv)
 		ERROR("Invalid resolution specification %s. Defaulting to VGA\n", cl_params.res.c_str());
 		cfg.pSize = CameraSizes::stereoQVGASize();
 	}
+
+	cfg.exposureValue = cl_params.exposure;
+	cfg.gainValue = cl_params.gain;
+
+	image_width = cfg.pSize.width;
+	image_height = cfg.pSize.height;
 
 	switch (cl_params.fps) {
 	case 15:
@@ -220,7 +235,7 @@ int main(int argc, char **argv)
 
 	//initialize optical flow
 	_optical_flow = new OpticalFlowOpenCV(cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[1][1],
-			OPTICAL_FLOW_OUTPUT_RATE, cfg.pSize.width, cfg.pSize.height);
+			OPTICAL_FLOW_OUTPUT_RATE, IMAGE_CROP_WIDTH, IMAGE_CROP_HEIGHT);
 	_optical_flow->setCameraMatrix(cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[1][1],
 			cameraParams.CameraMatrix[0][2], cameraParams.CameraMatrix[1][2]);
 	_optical_flow->setCameraDistortion(cameraParams.RadialDistortion[0], cameraParams.RadialDistortion[1],
@@ -360,16 +375,18 @@ void sendOptFlowMessage()
 
 		do {
 			if (!rb_imu.get(&g)) {
-				ERROR("IMU buffer is empty! Last IMU time %lld, new image time %lld, dt %lld", g.time_usec, sensor_msg.time_usec,
-				      sensor_msg.time_usec - g.time_usec);
-				return;
+				break;
 			}
 
 			dt = double(g.time_usec - last_imu_time) / 1e6;
 			last_imu_time = g.time_usec;
-			xgyro_int += g.xgyro * dt;
-			ygyro_int += g.ygyro * dt;
-			zgyro_int += g.zgyro * dt;
+			if (g.time_usec == 0 || last_imu_time == 0 || dt > 0.01) {
+				WARN("IMU time stamp equals 0");
+			} else {
+				xgyro_int += g.xgyro * dt;
+				ygyro_int += g.ygyro * dt;
+				zgyro_int += g.zgyro * dt;
+			}
 		} while (g.time_usec < sensor_msg.time_usec);
 
 		sensor_msg.integrated_xgyro = - ygyro_int; //swap directions to match PX4Flow and SENS_FLOW_ROT 6 (270 degrees)
@@ -417,7 +434,11 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 
 void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 {
-	calcOptFlow(img, time_stamp);
+	static cv::Rect crop(image_width/2-IMAGE_CROP_WIDTH/2, image_height/2-IMAGE_CROP_HEIGHT/2,
+			IMAGE_CROP_WIDTH, IMAGE_CROP_HEIGHT);
+	cv::Mat croppedImage = img(crop);
+
+	calcOptFlow(croppedImage, time_stamp);
 }
 
 int parseCommandline(int argc, char *argv[], Params &cl_params)
@@ -425,7 +446,7 @@ int parseCommandline(int argc, char *argv[], Params &cl_params)
 	int c;
 	int ret = 0;
 
-	while ((c = getopt(argc, argv, "c:r:n:f:")) != -1) {
+	while ((c = getopt(argc, argv, "c:r:n:f:e:g:")) != -1) {
 		switch (c) {
 		case 'c': {
 				cl_params.calibration_path =  std::string(optarg);
@@ -445,6 +466,18 @@ int parseCommandline(int argc, char *argv[], Params &cl_params)
 
 		case 'f': {
 				cl_params.fps = atoi(optarg);
+				break;
+			}
+
+		case 'e': {
+				if (atoi(optarg) >= 0 && atoi(optarg) < 500)
+					cl_params.exposure = atoi(optarg);
+				break;
+			}
+
+		case 'g': {
+			if (atoi(optarg) >= 0 && atoi(optarg) < 256)
+				cl_params.gain = atoi(optarg);
 				break;
 			}
 

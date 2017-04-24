@@ -170,7 +170,7 @@ int SnapCam::initialize(CamConfig cfg)
 		0; //whitebalance 0: auto 1: incandescent 2: fluorescent 3: warm-fluorescent 4: daylight 5: cloudy-daylight 6: twilight 7: shade 8: manual-cct
 	int isoModeIdx = 0; //auto
 
-	//params_.setVideoFPS(caps_.videoFpsValues[vFpsIdx]);
+	params_.setVideoFPS(caps_.videoFpsValues[pFpsIdx]);
 	params_.setFocusMode(caps_.focusModes[focusModeIdx]);
 	params_.setWhiteBalance(caps_.wbModes[wbModeIdx]);
 	params_.setISO(caps_.isoModes[isoModeIdx]);
@@ -180,13 +180,25 @@ int SnapCam::initialize(CamConfig cfg)
 	params_.setPreviewFpsRange(caps_.previewFpsRanges[pFpsIdx]);
 
 	rc = params_.commit();
+	if (rc) {
+		printf("Commit failed\n");
+		return rc;
+	}
+
+	camera_->startPreview();
+
+	params_.setManualExposure(cfg.exposureValue);
+	params_.setManualGain(cfg.gainValue);
+	printf("Setting exposure value =  %d , gain value = %d \n", cfg.exposureValue, cfg.gainValue );
+
+	rc = params_.commit();
 
 	if (rc) {
 		printf("Commit failed\n");
 		printCapabilities();
 
 	} else {
-		camera_->startPreview();
+		camera_->startRecording();
 	}
 
 	config_ = cfg;
@@ -195,6 +207,7 @@ int SnapCam::initialize(CamConfig cfg)
 SnapCam::~SnapCam()
 {
 	camera_->stopPreview();
+	camera_->stopRecording();
 
 	/* release camera device */
 	ICameraDevice::deleteInstance(&camera_);
@@ -222,7 +235,7 @@ void SnapCam::onError()
  * @param frame
  *
  */
-void SnapCam::onPreviewFrame(ICameraFrame *frame)
+void SnapCam::onVideoFrame(ICameraFrame *frame)
 {
 	uint64_t time_stamp = get_absolute_time();
 
@@ -379,119 +392,6 @@ int SnapCam::setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx)
 	}
 
 	return rc;
-}
-/**
- *  FUNCTION : setParameters
- *
- *  - When camera is opened, it is initialized with default set
- *    of parameters.
- *  - This function sets required parameters based on camera and
- *    usecase
- *  - params_setXXX and params_set  only updates parameter
- *    values in a local object.
- *  - params_.commit() function will update the hardware
- *    settings with the current state of the parameter object
- *  - Some functionality will not be application for all for
- *    sensor modules. for eg. optic flow sensor does not support
- *    autofocus/focus mode.
- *  - Reference setting for different sensors and format are
- *    provided in this function.
- *
- *  */
-int SnapCam::setParameters()
-{
-	int focusModeIdx = 0;
-	int wbModeIdx = 2;
-	int isoModeIdx = 0;
-	int pFpsIdx = 3;
-	int vFpsIdx = 0;
-	int prevFmtIdx = 3;
-	int rc = 0;
-
-	pSize_ = config_.pSize;
-	vSize_ = config_.vSize;
-	picSize_ = config_.picSize;
-
-	switch (config_.func) {
-	case CAM_FUNC_OPTIC_FLOW:
-		if (config_.outputFormat == RAW_FORMAT) {
-			/* Do not turn on videostream for optic flow in RAW format */
-			config_.testVideo = false;
-			printf("Setting output = RAW_FORMAT for optic flow sensor \n");
-			params_.set("preview-format", "bayer-rggb");
-			params_.set("picture-format", "bayer-mipi-10gbrg");
-			params_.set("raw-size", "640x480");
-		}
-
-		break;
-
-	case CAM_FUNC_RIGHT_SENSOR:
-		break;
-
-	case CAM_FUNC_STEREO:
-		break;
-
-	case CAM_FUNC_HIRES:
-		if (config_.picSizeIdx != -1) {
-			picSize_ = caps_.picSizes[config_.picSizeIdx];
-			config_.picSize = picSize_;
-
-		} else {
-			picSize_ = config_.picSize;
-		}
-
-		if (config_.snapshotFormat == RAW_FORMAT) {
-			printf("raw picture format: %s\n",
-			       "bayer-mipi-10bggr");
-			params_.set("picture-format",
-				    "bayer-mipi-10bggr");
-			printf("raw picture size: %s\n", caps_.rawSize.c_str());
-
-		} else {
-			printf("setting picture size: %dx%d\n",
-			       picSize_.width, picSize_.height);
-			params_.setPictureSize(picSize_);
-		}
-
-		printf("setting focus mode: %s\n",
-		       caps_.focusModes[focusModeIdx].c_str());
-		params_.setFocusMode(caps_.focusModes[focusModeIdx]);
-		printf("setting WB mode: %s\n", caps_.wbModes[wbModeIdx].c_str());
-		params_.setWhiteBalance(caps_.wbModes[wbModeIdx]);
-		printf("setting ISO mode: %s\n", caps_.isoModes[isoModeIdx].c_str());
-		params_.setISO(caps_.isoModes[isoModeIdx]);
-
-		printf("setting preview format: %s\n",
-		       caps_.previewFormats[prevFmtIdx].c_str());
-		params_.setPreviewFormat(caps_.previewFormats[prevFmtIdx]);
-		break;
-
-	default:
-		printf("invalid sensor function \n");
-		break;
-	}
-
-	printf("setting preview size: %dx%d\n", pSize_.width, pSize_.height);
-	params_.setPreviewSize(pSize_);
-	printf("setting video size: %dx%d\n", vSize_.width, vSize_.height);
-	params_.setVideoSize(vSize_);
-
-	/* Find index and set FPS  */
-	rc = setFPSindex(config_.fps, pFpsIdx, vFpsIdx);
-
-	if (rc == -1) {
-		return rc;
-	}
-
-	printf("setting preview fps range: %d, %d ( idx = %d ) \n",
-	       caps_.previewFpsRanges[pFpsIdx].min,
-	       caps_.previewFpsRanges[pFpsIdx].max, pFpsIdx);
-	params_.setPreviewFpsRange(caps_.previewFpsRanges[pFpsIdx]);
-	printf("setting video fps: %d ( idx = %d )\n", caps_.videoFpsValues[vFpsIdx], vFpsIdx);
-	params_.setVideoFPS(caps_.videoFpsValues[vFpsIdx]);
-
-
-	return params_.commit();
 }
 
 /**
