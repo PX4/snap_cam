@@ -237,7 +237,8 @@ int main(int argc, char **argv)
 	_optical_flow = new OpticalFlowOpenCV(cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[1][1],
 			OPTICAL_FLOW_OUTPUT_RATE, IMAGE_CROP_WIDTH, IMAGE_CROP_HEIGHT);
 	_optical_flow->setCameraMatrix(cameraParams.CameraMatrix[0][0], cameraParams.CameraMatrix[1][1],
-			cameraParams.CameraMatrix[0][2], cameraParams.CameraMatrix[1][2]);
+			cameraParams.CameraMatrix[0][2] - (cfg.pSize.width/2 - IMAGE_CROP_WIDTH/2),
+			cameraParams.CameraMatrix[1][2] - (cfg.pSize.height/2 - IMAGE_CROP_HEIGHT/2)); //account for cropping
 	_optical_flow->setCameraDistortion(cameraParams.RadialDistortion[0], cameraParams.RadialDistortion[1],
 			cameraParams.RadialDistortion[2]);
 
