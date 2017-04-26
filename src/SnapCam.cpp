@@ -248,9 +248,10 @@ void SnapCam::onVideoFrame(ICameraFrame *frame)
 
 	cv::Mat matFrame;
 
-	if (config_.func) { //highres
+	if (config_.func == 0) { //highres
 		cv::Mat mYUV = cv::Mat(1.5 * frame_height, frame_width, CV_8UC1, frame->data);
 		cv::cvtColor(mYUV, matFrame, CV_YUV420sp2RGB);
+		mYUV.deallocate();
 
 	} else { //optical flow
 		matFrame = cv::Mat(frame_height, frame_width, CV_8UC1, frame->data);
