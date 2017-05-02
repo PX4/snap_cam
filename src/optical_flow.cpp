@@ -62,6 +62,7 @@ struct Params {
 	uint16_t udp_remote_port;
 	uint8_t gain;
 	uint16_t exposure;
+	bool auto_exposure;
 } cl_params;
 
 struct GyroTimestamped {
@@ -114,12 +115,13 @@ int main(int argc, char **argv)
 	cl_params.res = "VGA";
 	cl_params.calibration_path = "";
 	cl_params.num_features = 10;
-	cl_params.fps = 15;
+	cl_params.fps = 30;
 	cl_params.target_ip = "127.0.0.1";
 	cl_params.udp_local_port = UDP_LOCAL_PORT_DEFAULT;
 	cl_params.udp_remote_port = UDP_REMOTE_PORT_DEFAULT;
-	cl_params.exposure = 100; //default
-	cl_params.gain = 50; //default
+	cl_params.exposure = 100;
+	cl_params.gain = 0;
+	cl_params.auto_exposure = false;
 
 	parseCommandline(argc, argv, cl_params);
 
@@ -165,33 +167,21 @@ int main(int argc, char **argv)
 	image_height = cfg.pSize.height;
 
 	switch (cl_params.fps) {
-	case 15:
-		cfg.fps = 0;
-		break;
-
-	case 24:
-		cfg.fps = 1;
-		break;
-
 	case 30:
-		cfg.fps = 2;
+		cfg.fps = 30;
 		break;
 
 	case 60:
-		cfg.fps = 3;
+		cfg.fps = 60;
 		break;
 
 	case 90:
-		cfg.fps = 4;
-		break;
-
-	case 120:
-		cfg.fps = 5;
+		cfg.fps = 90;
 		break;
 
 	default:
-		cfg.fps = 0;
-		ERROR("Invalid frame-rate option %d. Defaulting to 15 FPS\n", cl_params.fps);
+		cfg.fps = 30;
+		ERROR("Invalid frame-rate option %d. Defaulting to 30 FPS\n", cl_params.fps);
 	}
 
 	// try to setup udp socket for communcation
@@ -254,6 +244,10 @@ int main(int argc, char **argv)
 	// open the camera and set the callback to get the images
 	SnapCam cam(cfg);
 	cam.setListener(imageCallback);
+	if (cl_params.auto_exposure) {
+		INFO("Using auto exposure");
+		cam.setAutoExposure(cl_params.auto_exposure);
+	}
 
 	while (1) {
 		// read mavlink messages quickly to keep up with the queue
@@ -438,9 +432,13 @@ void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 	static cv::Rect crop(image_width/2-IMAGE_CROP_WIDTH/2, image_height/2-IMAGE_CROP_HEIGHT/2,
 			IMAGE_CROP_WIDTH, IMAGE_CROP_HEIGHT);
 	cv::Mat croppedImage = img(crop);
+	cv::Mat cropped;
+	// Copy the data into new matrix -> croppedImage.data can not be used in calcFlow()...
+	croppedImage.copyTo(cropped);
 
-	calcOptFlow(croppedImage, time_stamp);
+	calcOptFlow(cropped, time_stamp);
 	croppedImage.deallocate();
+	cropped.deallocate();
 }
 
 int parseCommandline(int argc, char *argv[], Params &cl_params)
@@ -448,7 +446,7 @@ int parseCommandline(int argc, char *argv[], Params &cl_params)
 	int c;
 	int ret = 0;
 
-	while ((c = getopt(argc, argv, "c:r:n:f:e:g:")) != -1) {
+	while ((c = getopt(argc, argv, "c:r:n:f:e:g:a")) != -1) {
 		switch (c) {
 		case 'c': {
 				cl_params.calibration_path =  std::string(optarg);
@@ -481,6 +479,11 @@ int parseCommandline(int argc, char *argv[], Params &cl_params)
 			if (atoi(optarg) >= 0 && atoi(optarg) < 256)
 				cl_params.gain = atoi(optarg);
 				break;
+			}
+
+		case 'a': {
+			cl_params.auto_exposure = true;
+			break;
 			}
 
 		case '?':

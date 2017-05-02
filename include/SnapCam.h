@@ -52,10 +52,12 @@
 
 #define DEFAULT_EXPOSURE_VALUE  250
 #define MIN_EXPOSURE_VALUE 0
-#define MAX_EXPOSURE_VALUE 65535
+#define MAX_EXPOSURE_VALUE 511
 #define DEFAULT_GAIN_VALUE  50
 #define MIN_GAIN_VALUE 0
 #define MAX_GAIN_VALUE 255
+
+#define EXPOSURE_CHANGE_THRESHOLD 10.0
 
 #define DEFAULT_CAMERA_FPS 30
 #define MS_PER_SEC 1000
@@ -157,6 +159,7 @@ public:
 	void setListener(CallbackFunction fun);  // register a function callback
 	template <class T>
 	void setListener(CallbackFunction fun, T *obj);  //register a function callback that is a class member
+	void setAutoExposure(bool auto_exposure) {auto_exposure_ = auto_exposure; };
 
 	/* listener methods */
 	virtual void onError();
@@ -180,6 +183,8 @@ private:
 	pthread_mutex_t mutexPicDone;
 	bool isPicDone;
 
+	bool auto_exposure_;
+
 	int frameCounter;
 	int camera_type;
 	int camera_resolution;
@@ -190,6 +195,7 @@ private:
 	int printCapabilities();
 	int setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx);
 	int findCamera(CamConfig cfg, int32_t &camera_id);
+	void updateExposure(cv::Mat &frame);
 
 	CallbackFunction cb_;
 };

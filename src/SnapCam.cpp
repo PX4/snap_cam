@@ -45,19 +45,22 @@ static CamConfig parseCommandline(int argc, char *argv[]);
 static uint64_t get_absolute_time();
 
 SnapCam::SnapCam(CamConfig cfg)
-	: cb_(nullptr)
+	: cb_(nullptr),
+	auto_exposure_(false)
 {
 	initialize(cfg);
 }
 
 SnapCam::SnapCam(int argc, char *argv[])
-	: cb_(nullptr)
+	: cb_(nullptr),
+	auto_exposure_(false)
 {
 	initialize(parseCommandline(argc, argv));
 }
 
 SnapCam::SnapCam(std::string config_str)
-	: cb_(nullptr)
+	: cb_(nullptr),
+	auto_exposure_(false)
 {
 	std::vector<char *> args;
 	std::istringstream iss(config_str);
@@ -151,13 +154,7 @@ int SnapCam::initialize(CamConfig cfg)
 	caps_.rawSize = params_.get("raw-size");
 
 	int pFpsIdx;
-
-	if (cfg.fps >= 0 && cfg.fps <= 6) {
-		pFpsIdx = cfg.fps;
-
-	} else {
-		pFpsIdx = 0;
-	}
+	int vFpsIdx;
 
 	pSize_ = cfg.pSize;
 
@@ -170,7 +167,15 @@ int SnapCam::initialize(CamConfig cfg)
 		0; //whitebalance 0: auto 1: incandescent 2: fluorescent 3: warm-fluorescent 4: daylight 5: cloudy-daylight 6: twilight 7: shade 8: manual-cct
 	int isoModeIdx = 0; //auto
 
-	params_.setVideoFPS(caps_.videoFpsValues[pFpsIdx]);
+	rc = setFPSindex(cfg.fps, pFpsIdx, vFpsIdx);
+
+	if ( rc == -1)
+	{
+		printf("FPS indexing failed pFpsIdx: %d  vFpsIdx: %d\n", pFpsIdx, vFpsIdx);
+		return rc;
+	}
+
+	params_.setVideoFPS(caps_.videoFpsValues[vFpsIdx]);
 	params_.setFocusMode(caps_.focusModes[focusModeIdx]);
 	params_.setWhiteBalance(caps_.wbModes[wbModeIdx]);
 	params_.setISO(caps_.isoModes[isoModeIdx]);
@@ -255,6 +260,10 @@ void SnapCam::onVideoFrame(ICameraFrame *frame)
 
 	} else { //optical flow
 		matFrame = cv::Mat(frame_height, frame_width, CV_8UC1, frame->data);
+	}
+
+	if (auto_exposure_) {
+		updateExposure(matFrame);
 	}
 
 	cb_(matFrame, time_stamp);
@@ -372,12 +381,12 @@ int SnapCam::setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx)
 	}
 
 	for (i = 0; i < caps_.videoFpsValues.size(); i++) {
-		if (fps == caps_.videoFpsValues[i]) {
+		if (fps == 30 * caps_.videoFpsValues[i]) {
 			vFpsIdx = i;
 			break;
 		}
 
-		if (DEFAULT_CAMERA_FPS == caps_.videoFpsValues[i]) {
+		if (DEFAULT_CAMERA_FPS == 30 * caps_.videoFpsValues[i]) {
 			defaultVideoFPSIndex = i;
 		}
 	}
@@ -418,6 +427,81 @@ template <class T>
 void SnapCam::setListener(CallbackFunction fun, T *obj)
 {
 	cb_ = std::bind(fun, obj);
+}
+
+void SnapCam::updateExposure(cv::Mat &frame)
+{
+	//limit update rate to 5Hz
+	static int counter = 1;
+	static int devider = std::round(config_.fps*0.2);
+	if (counter%devider != 0) {
+		counter++;
+		return;
+	}
+	counter = 1;
+
+	//init histogram variables
+	static cv::Mat hist;
+	static int channels[] = {0};
+	static int histSize[] = {10}; //10 bins
+	static float range[] = { 0, 255 };
+	static const float* ranges[] = { range };
+
+	// only use 128x128 window to calculate exposure
+	static int mask_size = 128;
+	static cv::Mat mask(frame.rows,frame.cols,CV_8U,cv::Scalar(0));
+	static bool mask_set = false;
+	if (!mask_set) {
+		mask(cv::Rect(frame.cols/2-mask_size/2,frame.rows/2-mask_size/2,mask_size,mask_size)) = 255;
+		mask_set = true;
+	}
+
+	//calculate the histogram with 10 bins
+	calcHist( &frame, 1, channels, mask,
+	     hist, 1, histSize, ranges,
+	     true, // the histogram is uniform
+	     false );
+
+	//calculate Mean Sample Value (MSV)
+	float msv = 0.0f;
+	for (int i = 0; i < histSize[0]; i++) {
+		msv += (i+1)*hist.at<float>(i)/16384.0f; //128x128 -> 16384
+	}
+
+	//get first exposure value
+	static float exposure = config_.exposureValue;
+	static float exposure_old = config_.exposureValue;
+
+	//MSV target value
+	static const float msv_target = 5.0f;
+
+	//PID-controller
+	static const float P_gain = 30.0f;
+	static const float I_gain = 0.1f;
+	static const float D_gain = 0.1f;
+
+	float msv_error = msv_target - msv;
+	static float msv_error_old = msv_error;
+	static float msv_error_int = 0.0f;
+	msv_error_int += msv_error;
+	float msv_error_d = msv_error - msv_error_old;
+
+	exposure += P_gain*msv_error + I_gain*msv_error_int + D_gain*msv_error_d;
+
+	if (exposure < 1.0f)
+		exposure = 1.0f;
+	if (exposure > 511.0f)
+		exposure = 511.0f;
+
+	msv_error_old = msv_error;
+
+	//set new exposure value if bigger than threshold
+	if (fabs(exposure - exposure_old) > EXPOSURE_CHANGE_THRESHOLD) {
+		params_.setManualExposure(std::round(exposure));
+		params_.commit();
+		exposure_old = exposure;
+	}
+
 }
 
 /**

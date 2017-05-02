@@ -70,7 +70,7 @@ cd ..
 catkin_make
 ```
 
-Then clone the following four catkin packages and build
+Then clone the following three catkin packages and build
 ```sh
 cd src
 git clone https://github.com/ros-perception/vision_opencv
@@ -128,10 +128,10 @@ Run the following in your build directory:
 ```
 All arguments are optional.
 * `-r` specifies the camera resolution. The default is `VGA`. Valid resolutions are `VGA` and `QVGA`.
-* `-f` specifies the camera frame-rate. The default is 15. Valid values are 15, 24, 30, 60, 90, 120.
+* `-f` specifies the camera frame-rate. The default is 30. Valid values are 30, 60, 90.
 * `-n` specifies the number of features with which to compute the optical flow. The default is 10.
 * `-c` specifies the calibration file. The default is `../calib/<resolution>/cameraParameters.yaml`.
-* `-e` specifies the exposure. The default is 100. Valid values are between 0 and 500.
+* `-e` specifies the exposure. The default is 100. Valid values are between 0 and 511.
 * `-g` specifies the gain. The default is 50. Valid values are between 0 and 255.
 
 ### With ROS
