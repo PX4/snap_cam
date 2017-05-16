@@ -437,8 +437,8 @@ void imageCallback(const cv::Mat &img, uint64_t time_stamp)
 	croppedImage.copyTo(cropped);
 
 	calcOptFlow(cropped, time_stamp);
-	croppedImage.deallocate();
-	cropped.deallocate();
+	croppedImage.release();
+	cropped.release();
 }
 
 int parseCommandline(int argc, char *argv[], Params &cl_params)
