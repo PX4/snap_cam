@@ -24,12 +24,11 @@ sudo apt-get install libeigen3-dev sip-dev libyaml-cpp-dev libboost-dev cmake
 
 To install OpenCV, [download](http://px4-tools.s3.amazonaws.com/opencv3_20160222-1_armhf.deb) and push the `.deb` package to the Snapdragon and install it using
 
-<div class="host-code"></div>
 ```sh
-adb push /path/to/file /home/linaro/
-dpkg -i opencv3_20160222-1_armhf.deb
+adb push /path/to/file /home/linaro/ (run on host)
+dpkg -i opencv3_20160222-1_armhf.deb (run on Snapdragon Flight)
 ```
-or when using with ROS ```ros-indigo-opencv3``` can be installed.
+or when using with ROS `ros-indigo-opencv3` can be installed.
 
 
 ## Building with pure CMake
