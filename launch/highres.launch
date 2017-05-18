@@ -7,11 +7,11 @@
     <param name="camera_type" value="highres"/>
 
     <!--
-    highres:      QVGA  : (320, 240)
-                  VGA   : (640, 480)
-                  720p  : (1280, 720)
-                  1080p : (1920, 1080)
-                  4k    : (4096, 2160) -->
+    highres:      QVGA  : (320,240)
+                  VGA   : (640,480)
+                  720p  : (1280,720)
+                  1080p : (1920,1080)
+                  4k    : (4096,2160) -->
     <param name="camera_resolution" value="4k"/>
 
     <!--

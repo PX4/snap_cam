@@ -7,9 +7,9 @@
     <param name="camera_type" value="optflow"/>
 
     <!--
-    optical flow: 0: QVGASize (320,240)
-                  1: VGASize (640,480) -->
-    <param name="camera_resolution" value="1"/>
+    optical flow: QVGA : (320,240)
+                  VGA  : (640,480) -->
+    <param name="camera_resolution" value="VGA"/>
 
     <!--
     optical flow: 0: 15, 1: 24, 2: 30, 3: 60, 4: 90, 5: 30, 6: 30 -->
