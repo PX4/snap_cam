@@ -15,6 +15,14 @@
     optical flow: 0: 15, 1: 24, 2: 30, 3: 60, 4: 90, 5: 30, 6: 30 -->
     <param name="camera_fps_idx" value="0"/>
 
+    <!--
+    optical flow: integer between 0 and 511 -->
+    <param name="exposure" value="100"/>
+
+    <!--
+    optical flow: integer between 0 and 255 -->
+    <param name="gain" value="50"/>
+
     <param name="topic_name" value="image"/>
   </node>
 </launch>
