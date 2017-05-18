@@ -79,9 +79,24 @@ int main(int argc, char **argv)
 	}
 
 	int camera_fps_idx;
+
 	if (!nh.getParam("camera_fps_idx", camera_fps_idx)) {
 		camera_fps_idx = 0;
 		ROS_WARN("No camera fps idx parameter provided. Defaulting to %d.", camera_fps_idx);
+	}
+
+	int exposure;
+
+	if (!nh.getParam("exposure", exposure)) {
+		exposure = 100;
+		ROS_WARN("No exposure parameter provided. Defaulting to %d.", exposure);
+	}
+
+	int camera_gain;
+
+	if (!nh.getParam("gain", camera_gain)) {
+		camera_gain = 50;
+		ROS_WARN("No gain parameter provided. Defaulting to %d.", camera_gain);
 	}
 
 	CamConfig cfg;
@@ -124,6 +139,8 @@ int main(int argc, char **argv)
 	}
 
 	cfg.fps = camera_fps_idx;
+	cfg.exposureValue = exposure;
+	cfg.gainValue = camera_gain;
 
 	SnapCam cam(cfg);
 	cam.setListener(imageCallback);
