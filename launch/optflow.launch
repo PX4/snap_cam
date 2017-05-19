@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="resolution" default="VGA"/>
+  <arg name="fps" default="0"/>
+  <arg name="exposure" default="100"/>
+  <arg name="gain" default="50"/>
+
   <node pkg="snap_cam" type="snap_cam_publisher_node" name="snap_cam_optflow_publisher" output="screen">
 
     <!--
@@ -9,19 +14,19 @@
     <!--
     optical flow: QVGA : (320,240)
                   VGA  : (640,480) -->
-    <param name="camera_resolution" value="VGA"/>
+    <param name="camera_resolution" value="$(arg resolution)"/>
 
     <!--
     optical flow: 0: 15, 1: 24, 2: 30, 3: 60, 4: 90, 5: 30, 6: 30 -->
-    <param name="camera_fps_idx" value="0"/>
+    <param name="camera_fps_idx" value="$(arg fps)"/>
 
     <!--
     optical flow: integer between 0 and 511 -->
-    <param name="exposure" value="100"/>
+    <param name="exposure" value="$(arg exposure)"/>
 
     <!--
     optical flow: integer between 0 and 255 -->
-    <param name="gain" value="50"/>
+    <param name="gain" value="$(arg gain)"/>
 
     <param name="topic_name" value="image"/>
   </node>

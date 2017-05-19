@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
+  <arg name="resolution" default="4k"/>
+  <arg name="fps" default="0"/>
+
   <node pkg="snap_cam" type="snap_cam_publisher_node" name="snap_cam_highres_publisher" output="screen">
 
     <!--
@@ -12,11 +15,11 @@
                   720p  : (1280,720)
                   1080p : (1920,1080)
                   4k    : (4096,2160) -->
-    <param name="camera_resolution" value="4k"/>
+    <param name="camera_resolution" value="$(arg resolution)"/>
 
     <!--
     highres: 0: 15 1: 24 2: 30 3: 60 4: 90 6: 120 -->
-    <param name="camera_fps_idx" value="0"/>
+    <param name="camera_fps_idx" value="$(arg fps)"/>
 
     <param name="topic_name" value="image"/>
   </node>
