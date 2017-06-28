@@ -81,7 +81,6 @@ void loadCustomCameraCalibration(const std::string calib_path);
 void send_mavlink_message(const uint8_t msgid, const void *msg, uint8_t component_ID);
 void sendOptFlowMessage(uint64_t timestamp, uint32_t dt, double flow_x, double flow_y, double quality);
 void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp);
-void imageCallback(const cv::Mat &img, uint64_t time_stamp);
 int parseCommandline(int argc, char *argv[], Params &cl_params);
 void handle_message(mavlink_message_t *msg);
 void handle_message_highres_imu(mavlink_message_t *msg);
@@ -243,7 +242,8 @@ int main(int argc, char **argv)
 
 	// open the camera and set the callback to get the images
 	SnapCam cam(cfg);
-	cam.setListener(imageCallback);
+	cam.setListener(calcOptFlow);
+	cam.setCrop(IMAGE_CROP_WIDTH, IMAGE_CROP_HEIGHT);
 	if (cl_params.auto_exposure) {
 		INFO("Using auto exposure");
 		cam.setAutoExposure(cl_params.auto_exposure);
@@ -427,20 +427,6 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 	}
 }
 
-void imageCallback(const cv::Mat &img, uint64_t time_stamp)
-{
-	static cv::Rect crop(image_width/2-IMAGE_CROP_WIDTH/2, image_height/2-IMAGE_CROP_HEIGHT/2,
-			IMAGE_CROP_WIDTH, IMAGE_CROP_HEIGHT);
-	cv::Mat croppedImage = img(crop);
-	cv::Mat cropped;
-	// Copy the data into new matrix -> croppedImage.data can not be used in calcFlow()...
-	croppedImage.copyTo(cropped);
-
-	calcOptFlow(cropped, time_stamp);
-	croppedImage.release();
-	cropped.release();
-}
-
 int parseCommandline(int argc, char *argv[], Params &cl_params)
 {
 	int c;
@@ -470,7 +456,7 @@ int parseCommandline(int argc, char *argv[], Params &cl_params)
 			}
 
 		case 'e': {
-				if (atoi(optarg) >= 0 && atoi(optarg) < 500)
+				if (atoi(optarg) >= 0 && atoi(optarg) < 512)
 					cl_params.exposure = atoi(optarg);
 				break;
 			}

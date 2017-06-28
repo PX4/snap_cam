@@ -160,6 +160,7 @@ public:
 	template <class T>
 	void setListener(CallbackFunction fun, T *obj);  //register a function callback that is a class member
 	void setAutoExposure(bool auto_exposure) {auto_exposure_ = auto_exposure; };
+	void setCrop(int width, int height) {set_crop_ = true; crop_width_ = width; crop_height_ = height;};
 
 	/* listener methods */
 	virtual void onError();
@@ -184,6 +185,9 @@ private:
 	bool isPicDone;
 
 	bool auto_exposure_;
+	bool set_crop_;
+	int crop_width_;
+	int crop_height_;
 
 	int frameCounter;
 	int camera_type;

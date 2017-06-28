@@ -46,21 +46,24 @@ static uint64_t get_absolute_time();
 
 SnapCam::SnapCam(CamConfig cfg)
 	: cb_(nullptr),
-	auto_exposure_(false)
+	auto_exposure_(false),
+	set_crop_(false)
 {
 	initialize(cfg);
 }
 
 SnapCam::SnapCam(int argc, char *argv[])
 	: cb_(nullptr),
-	auto_exposure_(false)
+	auto_exposure_(false),
+	set_crop_(false)
 {
 	initialize(parseCommandline(argc, argv));
 }
 
 SnapCam::SnapCam(std::string config_str)
 	: cb_(nullptr),
-	auto_exposure_(false)
+	auto_exposure_(false),
+	set_crop_(false)
 {
 	std::vector<char *> args;
 	std::istringstream iss(config_str);
@@ -260,6 +263,14 @@ void SnapCam::onVideoFrame(ICameraFrame *frame)
 
 	} else { //optical flow
 		matFrame = cv::Mat(frame_height, frame_width, CV_8UC1, frame->data);
+	}
+
+	if (set_crop_) {
+		static cv::Rect crop(frame_width/2-crop_width_/2, frame_height/2-crop_height_/2, crop_width_, crop_height_);
+		cv::Mat croppedImage = matFrame(crop);
+		// Copy the data into new matrix -> croppedImage.data can not be used in calcFlow()...
+		croppedImage.copyTo(matFrame);
+		croppedImage.release();
 	}
 
 	if (auto_exposure_) {
