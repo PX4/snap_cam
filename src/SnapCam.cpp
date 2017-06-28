@@ -274,7 +274,7 @@ void SnapCam::onVideoFrame(ICameraFrame *frame)
 	}
 
 	if (auto_exposure_) {
-		updateExposure(matFrame);
+		updateExposureAndGain(matFrame);
 	}
 
 	cb_(matFrame, time_stamp);
@@ -440,7 +440,7 @@ void SnapCam::setListener(CallbackFunction fun, T *obj)
 	cb_ = std::bind(fun, obj);
 }
 
-void SnapCam::updateExposure(cv::Mat &frame)
+void SnapCam::updateExposureAndGain(cv::Mat &frame)
 {
 	//limit update rate to 5Hz
 	static int counter = 1;
@@ -452,18 +452,21 @@ void SnapCam::updateExposure(cv::Mat &frame)
 	counter = 1;
 
 	//init histogram variables
-	static cv::Mat hist;
-	static int channels[] = {0};
-	static int histSize[] = {10}; //10 bins
-	static float range[] = { 0, 255 };
-	static const float* ranges[] = { range };
+	cv::Mat hist;
+	int channels[] = {0};
+	int histSize[] = {10}; //10 bins
+	float range[] = { 0, 255 };
+	const float* ranges[] = { range };
 
 	// only use 128x128 window to calculate exposure
-	static int mask_size = 128;
 	static cv::Mat mask(frame.rows,frame.cols,CV_8U,cv::Scalar(0));
 	static bool mask_set = false;
-	if (!mask_set) {
-		mask(cv::Rect(frame.cols/2-mask_size/2,frame.rows/2-mask_size/2,mask_size,mask_size)) = 255;
+	if (!mask_set && frame.cols > HISTOGRAM_MASK_SIZE && frame.rows > HISTOGRAM_MASK_SIZE) {
+		mask(cv::Rect(frame.cols/2-HISTOGRAM_MASK_SIZE/2, frame.rows/2-HISTOGRAM_MASK_SIZE/2,
+			HISTOGRAM_MASK_SIZE, HISTOGRAM_MASK_SIZE)) = 255;
+		mask_set = true;
+	} else if (!mask_set) {
+		mask = 255;
 		mask_set = true;
 	}
 
@@ -482,36 +485,60 @@ void SnapCam::updateExposure(cv::Mat &frame)
 	//get first exposure value
 	static float exposure = config_.exposureValue;
 	static float exposure_old = config_.exposureValue;
+	//get first gain value
+	static float gain = config_.gainValue;
+	static float gain_old = config_.gainValue;
 
 	//MSV target value
-	static const float msv_target = 5.0f;
+	const float msv_target = 5.0f;
 
-	//PID-controller
-	static const float P_gain = 30.0f;
-	static const float I_gain = 0.1f;
-	static const float D_gain = 0.1f;
-
+	//calculate MSV error, derivative and integral
 	float msv_error = msv_target - msv;
 	static float msv_error_old = msv_error;
 	static float msv_error_int = 0.0f;
 	msv_error_int += msv_error;
 	float msv_error_d = msv_error - msv_error_old;
 
-	exposure += P_gain*msv_error + I_gain*msv_error_int + D_gain*msv_error_d;
+	//calculate new exposure value based on MSV
+	exposure += EXPOSURE_P*msv_error + EXPOSURE_I*msv_error_int + EXPOSURE_D*msv_error_d;
 
-	if (exposure < 1.0f)
-		exposure = 1.0f;
-	if (exposure > 511.0f)
-		exposure = 511.0f;
+	//adjust the gain if exposure is saturated
+	if (gain > MIN_GAIN_VALUE || (exposure > MAX_EXPOSURE_VALUE-1.0f && exposure_old > MAX_EXPOSURE_VALUE-1.0f)) {
+
+		//calculate new gain value based on MSV
+		gain += GAIN_P*msv_error + GAIN_I*msv_error_int + GAIN_D*msv_error_d;
+
+		if (gain < MIN_GAIN_VALUE)
+			gain = MIN_GAIN_VALUE;
+		if (gain > MAX_GAIN_VALUE)
+			gain = MAX_GAIN_VALUE;
+
+		//set new gain value if bigger than threshold
+		if (fabs(gain - gain_old) > GAIN_CHANGE_THRESHOLD || (gain > MAX_GAIN_VALUE-1.0f && gain_old < MAX_GAIN_VALUE) ||
+		   (gain < MIN_GAIN_VALUE+1.0f && gain_old > MIN_GAIN_VALUE)) {
+			params_.setManualGain(std::round(gain));
+			params_.commit();
+			gain_old = gain;
+		}
+
+	} else { //adjust exposure
+
+		if (exposure < MIN_EXPOSURE_VALUE)
+			exposure = MIN_EXPOSURE_VALUE;
+		if (exposure > MAX_EXPOSURE_VALUE)
+			exposure = MAX_EXPOSURE_VALUE;
+
+		//set new exposure value if bigger than threshold or exposure old is not yet bigger than MAX_EXPOSURE_VALUE
+		if (fabs(exposure - exposure_old) > EXPOSURE_CHANGE_THRESHOLD ||
+		   (exposure > MAX_EXPOSURE_VALUE-1.0f && exposure_old < MAX_EXPOSURE_VALUE)) {
+			params_.setManualExposure(std::round(exposure));
+			params_.commit();
+			exposure_old = exposure;
+		}
+
+	}
 
 	msv_error_old = msv_error;
-
-	//set new exposure value if bigger than threshold
-	if (fabs(exposure - exposure_old) > EXPOSURE_CHANGE_THRESHOLD) {
-		params_.setManualExposure(std::round(exposure));
-		params_.commit();
-		exposure_old = exposure;
-	}
 
 }
 

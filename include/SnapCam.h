@@ -51,13 +51,24 @@
 #include "camera_parameters.h"
 
 #define DEFAULT_EXPOSURE_VALUE  250
-#define MIN_EXPOSURE_VALUE 0
+#define MIN_EXPOSURE_VALUE 1
 #define MAX_EXPOSURE_VALUE 511
 #define DEFAULT_GAIN_VALUE  50
 #define MIN_GAIN_VALUE 0
 #define MAX_GAIN_VALUE 255
 
-#define EXPOSURE_CHANGE_THRESHOLD 10.0
+#define EXPOSURE_CHANGE_THRESHOLD 10.0f
+#define GAIN_CHANGE_THRESHOLD 5.0f
+
+#define EXPOSURE_P 30.0f
+#define EXPOSURE_I 0.1f
+#define EXPOSURE_D 0.1f
+
+#define GAIN_P 15.0f
+#define GAIN_I 0.05f
+#define GAIN_D 0.05f
+
+#define HISTOGRAM_MASK_SIZE 128
 
 #define DEFAULT_CAMERA_FPS 30
 #define MS_PER_SEC 1000
@@ -199,7 +210,7 @@ private:
 	int printCapabilities();
 	int setFPSindex(int fps, int &pFpsIdx, int &vFpsIdx);
 	int findCamera(CamConfig cfg, int32_t &camera_id);
-	void updateExposure(cv::Mat &frame);
+	void updateExposureAndGain(cv::Mat &frame);
 
 	CallbackFunction cb_;
 };
