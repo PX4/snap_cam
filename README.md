@@ -46,7 +46,7 @@ Run the optical flow application with (note that you need to be root for this):
 
 ## Building with ROS
 ### Prerequisites
-To run the ROS nodes on the Snapdragon Flight, ROS indigo has to be installed. Follow [this](http://wiki.ros.org/indigo/Installation/UbuntuARM) link to install it on your Snapdragon Flight. (preferably using the linaro user: `$ su linaro`)
+To run the ROS nodes on the Snapdragon Flight, ROS indigo (base) has to be installed. Follow [this](http://wiki.ros.org/indigo/Installation/UbuntuARM) link to install it on your Snapdragon Flight. (preferably using the linaro user: `$ su linaro`)
 
 If you're having permission issues while installing ros try
 ```sh
@@ -56,7 +56,7 @@ sudo chown -R linaro:linaro /home/linaro
 #### Install the following dependencies:
 ROS dependencies
 ```sh
-sudo apt-get install ros-indigo-mavlink ros-indigo-tf ros-indigo-orocos-toolchain ros-indigo-angles ros-indigo-tf2 ros-indigo-tf2-ros
+sudo apt-get install ros-indigo-mavlink ros-indigo-orocos-toolchain ros-indigo-angles ros-indigo-tf2 ros-indigo-tf2-ros
 ```
 
 #### create a catkin workspace
