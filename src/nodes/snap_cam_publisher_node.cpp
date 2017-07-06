@@ -78,11 +78,11 @@ int main(int argc, char **argv)
 		ROS_WARN("No camera type parameter provided. Defaulting to %s.", camera_type.c_str());
 	}
 
-	int camera_fps_idx;
+	int camera_fps;
 
-	if (!nh.getParam("camera_fps_idx", camera_fps_idx)) {
-		camera_fps_idx = 0;
-		ROS_WARN("No camera fps idx parameter provided. Defaulting to %d.", camera_fps_idx);
+	if (!nh.getParam("camera_fps", camera_fps)) {
+		camera_fps = 30;
+		ROS_WARN("No camera fps idx parameter provided. Defaulting to %d.", camera_fps);
 	}
 
 	int exposure;
@@ -95,8 +95,15 @@ int main(int argc, char **argv)
 	int camera_gain;
 
 	if (!nh.getParam("gain", camera_gain)) {
-		camera_gain = 50;
+		camera_gain = 0;
 		ROS_WARN("No gain parameter provided. Defaulting to %d.", camera_gain);
+	}
+
+	bool auto_exposure;
+
+	if (!nh.getParam("auto_exposure", auto_exposure)) {
+		auto_exposure = false;
+		ROS_WARN("Defaulting to no auto exposure");
 	}
 
 	CamConfig cfg;
@@ -138,12 +145,16 @@ int main(int argc, char **argv)
 		cfg.pSize = CameraSizes::stereoVGASize();
 	}
 
-	cfg.fps = camera_fps_idx;
+	cfg.fps = camera_fps;
 	cfg.exposureValue = exposure;
 	cfg.gainValue = camera_gain;
 
 	SnapCam cam(cfg);
 	cam.setListener(imageCallback);
+	if (auto_exposure) {
+		ROS_INFO("Using auto exposure");
+		cam.setAutoExposure(auto_exposure);
+	}
 
 	ros::spin();
 
