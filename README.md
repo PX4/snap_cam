@@ -132,6 +132,7 @@ All arguments are optional.
 * `-c` specifies the calibration file. The default is `../calib/<resolution>/cameraParameters.yaml`.
 * `-e` specifies the exposure. The default is 100. Valid values are between 0 and 511.
 * `-g` specifies the gain. The default is 50. Valid values are between 0 and 255.
+* `-a` enables auto exposure (with gain control on top if exceeding max exposure).
 
 ### With ROS
 After sourcing your workspace with `source ~/catkin_ws/devel/setup.bash`, run:
