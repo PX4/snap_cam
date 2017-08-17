@@ -375,7 +375,7 @@ void sendOptFlowMessage()
 
 			dt = double(g.time_usec - last_imu_time) / 1e6;
 			last_imu_time = g.time_usec;
-			if (g.time_usec == 0 || last_imu_time == 0 || dt > 0.01) {
+			if (last_imu_time == 0 || dt > 0.01) {
 				WARN("IMU time stamp equals 0");
 			} else {
 				xgyro_int += g.xgyro * dt;
