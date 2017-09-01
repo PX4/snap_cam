@@ -55,7 +55,8 @@ SnapCam::SnapCam(CamConfig cfg)
 SnapCam::SnapCam(int argc, char *argv[])
 	: cb_(nullptr),
 	auto_exposure_(false),
-	set_crop_(false)
+	set_crop_(false),
+	msv_error_int_(0.0f)
 {
 	initialize(parseCommandline(argc, argv));
 }
@@ -444,7 +445,7 @@ void SnapCam::updateExposureAndGain(cv::Mat &frame)
 {
 	//limit update rate to 5Hz
 	static int counter = 1;
-	static int devider = std::round(config_.fps*0.2);
+	const int devider = std::round(config_.fps*0.2);
 	if (counter%devider != 0) {
 		counter++;
 		return;
@@ -459,15 +460,12 @@ void SnapCam::updateExposureAndGain(cv::Mat &frame)
 	const float* ranges[] = { range };
 
 	// only use 128x128 window to calculate exposure
-	static cv::Mat mask(frame.rows,frame.cols,CV_8U,cv::Scalar(0));
-	static bool mask_set = false;
-	if (!mask_set && frame.cols > HISTOGRAM_MASK_SIZE && frame.rows > HISTOGRAM_MASK_SIZE) {
+	cv::Mat mask(frame.rows,frame.cols,CV_8U,cv::Scalar(0));
+	if (frame.cols > HISTOGRAM_MASK_SIZE && frame.rows > HISTOGRAM_MASK_SIZE) {
 		mask(cv::Rect(frame.cols/2-HISTOGRAM_MASK_SIZE/2, frame.rows/2-HISTOGRAM_MASK_SIZE/2,
 			HISTOGRAM_MASK_SIZE, HISTOGRAM_MASK_SIZE)) = 255;
-		mask_set = true;
-	} else if (!mask_set) {
+	} else {
 		mask = 255;
-		mask_set = true;
 	}
 
 	//calculate the histogram with 10 bins
@@ -482,31 +480,26 @@ void SnapCam::updateExposureAndGain(cv::Mat &frame)
 		msv += (i+1)*hist.at<float>(i)/16384.0f; //128x128 -> 16384
 	}
 
-	//get first exposure value
-	static float exposure = config_.exposureValue;
-	static float exposure_old = config_.exposureValue;
-	//get first gain value
-	static float gain = config_.gainValue;
-	static float gain_old = config_.gainValue;
-
-	//MSV target value
-	const float msv_target = 5.0f;
+	//get first exposure and gain value
+	static float exposure_old = config_.exposureValue; // config_.exposureValue does not change -> use exposure_old
+	static float gain_old = config_.gainValue; // config_.gainValue does not change -> use gain_old
+	float exposure = exposure_old;
+	float gain = gain_old;
 
 	//calculate MSV error, derivative and integral
-	float msv_error = msv_target - msv;
-	static float msv_error_old = msv_error;
-	static float msv_error_int = 0.0f;
-	msv_error_int += msv_error;
-	float msv_error_d = msv_error - msv_error_old;
+	float msv_error = MSV_TARGET - msv;
+	msv_error_old_ = msv_error;
+	msv_error_int_ += msv_error;
+	float msv_error_d = msv_error - msv_error_old_;
 
 	//calculate new exposure value based on MSV
-	exposure += EXPOSURE_P*msv_error + EXPOSURE_I*msv_error_int + EXPOSURE_D*msv_error_d;
+	exposure += EXPOSURE_P*msv_error + EXPOSURE_I*msv_error_int_ + EXPOSURE_D*msv_error_d;
 
 	//adjust the gain if exposure is saturated
 	if (gain > MIN_GAIN_VALUE || (exposure > MAX_EXPOSURE_VALUE-1.0f && exposure_old > MAX_EXPOSURE_VALUE-1.0f)) {
 
 		//calculate new gain value based on MSV
-		gain += GAIN_P*msv_error + GAIN_I*msv_error_int + GAIN_D*msv_error_d;
+		gain += GAIN_P*msv_error + GAIN_I*msv_error_int_ + GAIN_D*msv_error_d;
 
 		if (gain < MIN_GAIN_VALUE)
 			gain = MIN_GAIN_VALUE;
@@ -538,7 +531,7 @@ void SnapCam::updateExposureAndGain(cv::Mat &frame)
 
 	}
 
-	msv_error_old = msv_error;
+	msv_error_old_ = msv_error;
 
 }
 

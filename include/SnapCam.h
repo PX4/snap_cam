@@ -59,6 +59,7 @@
 
 #define EXPOSURE_CHANGE_THRESHOLD 10.0f
 #define GAIN_CHANGE_THRESHOLD 5.0f
+#define MSV_TARGET 5.0f
 
 #define EXPOSURE_P 30.0f
 #define EXPOSURE_I 0.1f
@@ -197,6 +198,8 @@ private:
 
 	bool auto_exposure_;
 	bool set_crop_;
+	float msv_error_old_;
+	float msv_error_int_;
 	int crop_width_;
 	int crop_height_;
 

@@ -398,7 +398,7 @@ void calcOptFlow(const cv::Mat &Image, uint64_t img_timestamp)
 
 	float flow_x_ang = 0.0f;
   float flow_y_ang = 0.0f;
-	static int dt_us;
+	int dt_us;
 
 	int flow_quality = _optical_flow->calcFlow(Image.data, img_timestamp, dt_us, flow_x_ang, flow_y_ang);
 
