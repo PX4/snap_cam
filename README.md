@@ -120,6 +120,7 @@ adb push /pathToYourCatkinWs/src/snap_cam/calib/cameraParameters.yaml pathToSnap
 ```
 
 ## Running the optical flow
+Check the [PX4 user guide](https://docs.px4.io/en/flight_controller/snapdragon_flight_camera.html) for more info.
 ### With pure CMake
 Run the following in your build directory:
 ```sh
