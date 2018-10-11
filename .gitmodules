@@ -3,4 +3,4 @@
 	url = http://github.com/mavlink/c_library.git
 [submodule "src/OpticalFlow"]
 	path = src/OpticalFlow
-	url = https://github.com/PX4/OpticalFlow.git
+	url = git@github.com:YuanfuC/OpticalFlow.git
